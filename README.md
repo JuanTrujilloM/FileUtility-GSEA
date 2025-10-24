@@ -75,7 +75,7 @@ El ejecutable se generará en `bin/FileUtility`.
 - Compresión: RLE
 
 ```bash
-./bin/FileUtility -c -i tests/inputFiles/compress/Test_C.txt -o tests/outputFiles compress/test_Compressed.txt --comp-alg RLE
+./bin/FileUtility -c -i tests/inputFiles/compress/Test_C.txt -o tests/outputFiles/compress/test_Compressed.txt --comp-alg RLE
 ```
 
 - Descompresión: RLE
