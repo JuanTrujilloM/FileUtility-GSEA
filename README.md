@@ -75,7 +75,7 @@ El ejecutable se generará en `bin/FileUtility`.
 - Compresión: RLE
 
 ```bash
-./bin/FileUtility -c -i tests/inputFiles/compress/Test_C.txt -o tests/outputFiles/compress test_Compressed.txt --comp-alg RLE
+./bin/FileUtility -c -i tests/inputFiles/compress/Test_C.txt -o tests/outputFiles compress/test_Compressed.txt --comp-alg RLE
 ```
 
 - Descompresión: RLE
@@ -92,6 +92,6 @@ El ejecutable se generará en `bin/FileUtility`.
 - Desncriptación: Vigenere
 
 ```bash
-./bin/FileUtility -u -i tests/inputFiles/desencryption/Test_DE.txt -o tests outputFiles/desencryption/test_desencryption.txt --enc-alg VIG -k MiClave
+./bin/FileUtility -u -i tests/inputFiles/desencryption/Test_DE.txt -o tests/outputFiles/desencryption/test_desencryption.txt --enc-alg VIG -k MiClave
 ```
 
