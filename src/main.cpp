@@ -71,12 +71,26 @@ int main(int argc, char* argv[]) {
     if (compress_flag) {
         // Seleccionar el algoritmo de compresión
         // Ejecutar la compresión
+
+        // Para RLE
+        if (comp_algorithm == "RLE") {
+            compressRLE(input_file, output_file);
+        } else {
+            std::cout << "Algoritmo de compresión no soportado: " << comp_algorithm << std::endl;
+        }
     }
 
     // Si se requiere descompresión
     if (decompress_flag) {
         // Seleccionar el algoritmo de compresión
         // Ejecutar la descompresión
+
+        // Para RLE
+        if (comp_algorithm == "RLE") {
+            decompressRLE(input_file, output_file);
+        } else {
+            std::cout << "Algoritmo de compresión no soportado: " << comp_algorithm << std::endl;
+        }
     }
 
     // Si se requiere encriptación
