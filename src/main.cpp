@@ -70,7 +70,6 @@ int main(int argc, char* argv[]) {
     // Si se requiere compresión
     if (compress_flag) {
         // Seleccionar el algoritmo de compresión
-        // Ejecutar la compresión
 
         // Para RLE
         if (comp_algorithm == "RLE") {
@@ -82,8 +81,7 @@ int main(int argc, char* argv[]) {
 
     // Si se requiere descompresión
     if (decompress_flag) {
-        // Seleccionar el algoritmo de compresión
-        // Ejecutar la descompresión
+        // Seleccionar el algoritmo de descompresión
 
         // Para RLE
         if (comp_algorithm == "RLE") {
@@ -95,14 +93,40 @@ int main(int argc, char* argv[]) {
 
     // Si se requiere encriptación
     if (encrypt_flag) {
+
+        if (key.empty()) {
+            std::cout << "Debe especificar la clave con -k" << std::endl;
+            return 1;
+        }
         // Seleccionar el algoritmo de encriptación
-        // Ejecutar la encriptación
+
+        // Para Vigenère
+        if (enc_algorithm == "VIG" || enc_algorithm == "VIGENERE" || enc_algorithm == "Vigenere") {
+            encryptVigenere(input_file, output_file, key);
+        } else {
+            std::cout << "Algoritmo de encriptación no soportado: " << enc_algorithm << std::endl;
+        } 
     }
 
     // Si se requiere desencriptación
     if (decrypt_flag) {
-        // Seleccionar el algoritmo de encriptación
-        // Ejecutar la desencriptación
+
+        if (key.empty()) {
+            std::cout << "Debe especificar la clave con -k" << std::endl;
+            return 1;
+        }
+
+        // Seleccionar el algoritmo de desencriptación
+
+        // Para Vigenère
+        if (enc_algorithm == "VIG" || enc_algorithm == "VIGENERE" || enc_algorithm == "Vigenere") {
+            if (!decryptVigenere(input_file, output_file, key)) {
+                std::cout << "Fallo en la desencriptación Vigenère" << std::endl;
+                return 1;
+            }
+        } else {
+            std::cout << "Algoritmo de encriptación no soportado: " << enc_algorithm << std::endl;
+        }
     }
     return 0;
 }
