@@ -63,3 +63,12 @@ std::vector<std::string> listFiles(const std::string &directoryPath) {
     closedir(dir);
     return files;
 }
+
+long long getFileSize(const std::string &path) {
+    struct stat st;
+    if (stat(path.c_str(), &st) == 0) {
+        return static_cast<long long>(st.st_size);
+    }
+    perror(("Error al obtener tamaño de archivo: " + path).c_str());
+    return -1;
+}

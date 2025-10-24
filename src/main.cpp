@@ -73,7 +73,11 @@ int main(int argc, char* argv[]) {
 
         // Para RLE
         if (comp_algorithm == "RLE") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Compresión:RLE] Tamaño antes: " << before << " bytes" << std::endl;
             compressRLE(input_file, output_file);
+            long long after = getFileSize(output_file);
+            std::cout << "[Compresión:RLE] Tamaño después: " << after << " bytes" << std::endl;
         } else {
             std::cout << "Algoritmo de compresión no soportado: " << comp_algorithm << std::endl;
         }
@@ -85,7 +89,11 @@ int main(int argc, char* argv[]) {
 
         // Para RLE
         if (comp_algorithm == "RLE") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Descompresión:RLE] Tamaño antes: " << before << " bytes" << std::endl;
             decompressRLE(input_file, output_file);
+            long long after = getFileSize(output_file);
+            std::cout << "[Descompresión:RLE] Tamaño después: " << after << " bytes" << std::endl;
         } else {
             std::cout << "Algoritmo de compresión no soportado: " << comp_algorithm << std::endl;
         }
@@ -102,7 +110,11 @@ int main(int argc, char* argv[]) {
 
         // Para Vigenère
         if (enc_algorithm == "VIG" || enc_algorithm == "VIGENERE" || enc_algorithm == "Vigenere") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Encriptación:Vigenère] Tamaño antes: " << before << " bytes" << std::endl;
             encryptVigenere(input_file, output_file, key);
+            long long after = getFileSize(output_file);
+            std::cout << "[Encriptación:Vigenère] Tamaño después: " << after << " bytes" << std::endl;
         } else {
             std::cout << "Algoritmo de encriptación no soportado: " << enc_algorithm << std::endl;
         } 
@@ -120,10 +132,14 @@ int main(int argc, char* argv[]) {
 
         // Para Vigenère
         if (enc_algorithm == "VIG" || enc_algorithm == "VIGENERE" || enc_algorithm == "Vigenere") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Desencriptación:Vigenère] Tamaño antes: " << before << " bytes" << std::endl;
             if (!decryptVigenere(input_file, output_file, key)) {
                 std::cout << "Fallo en la desencriptación Vigenère" << std::endl;
                 return 1;
             }
+            long long after = getFileSize(output_file);
+            std::cout << "[Desencriptación:Vigenère] Tamaño después: " << after << " bytes" << std::endl;
         } else {
             std::cout << "Algoritmo de encriptación no soportado: " << enc_algorithm << std::endl;
         }

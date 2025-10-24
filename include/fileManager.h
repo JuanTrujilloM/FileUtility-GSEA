@@ -22,4 +22,7 @@ bool isDirectory(const std::string &path);
 // Lista los archivos en un directorio
 std::vector<std::string> listFiles(const std::string &directoryPath);
 
+// Obtiene el tamaño de un archivo (en bytes). Retorna -1 si falla.
+long long getFileSize(const std::string &path);
+
 #endif
