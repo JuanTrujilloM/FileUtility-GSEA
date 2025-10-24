@@ -83,3 +83,15 @@ El ejecutable se generará en `bin/FileUtility`.
 ```bash
 ./bin/FileUtility -d -i tests/inputFiles/decompress/Test_D.txt -o tests/outputFiles/decompress/test_Decompressed.txt --comp-alg RLE
 ```
+- Encriptación: Vigenere
+
+```bash
+./bin/FileUtility -e -i tests/inputFiles/encryption/Test_E.txt -o tests/outputFiles/encryption/test_encryption.txt --enc-alg VIG -k MiClave
+```
+
+- Desncriptación: Vigenere
+
+```bash
+./bin/FileUtility -u -i tests/inputFiles/desencryption/Test_DE.txt -o tests outputFiles/desencryption/test_desencryption.txt --enc-alg VIG -k MiClave
+```
+
