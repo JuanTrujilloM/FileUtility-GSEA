@@ -3,9 +3,12 @@
 
 #include <string>
 
-// Cifrado/Descifrado Vigenère a nivel de bytes (mod 256)
-// Retorna true en éxito, false en error (I/O o clave vacía)
+// Algoritmo Vigenère
 bool encryptVigenere(const std::string &inputPath, const std::string &outputPath, const std::string &key);
 bool decryptVigenere(const std::string &inputPath, const std::string &outputPath, const std::string &key);
+
+// Algoritmo AES-128
+bool encryptAES128(const std::string &inputPath, const std::string &outputPath, const std::string &key);
+bool decryptAES128(const std::string &inputPath, const std::string &outputPath, const std::string &key);
 
 #endif

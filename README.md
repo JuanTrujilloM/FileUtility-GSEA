@@ -72,26 +72,29 @@ El ejecutable se generará en `bin/FileUtility`.
 
 ## Casos Actuales
 
-- Compresión: RLE
+### Compresión y descompresión
+Usa el archivo `tests/Test1C.txt` para los casos de compresión y descompresión:
 
+- Compresión: RLE
 ```bash
-./bin/FileUtility -c -i tests/inputFiles/compress/Test_C.txt -o tests/outputFiles/compress/test_Compressed.txt --comp-alg RLE
+./bin/FileUtility -c -i tests/Test1C.txt -o tests/TestComp.dat --comp-alg RLE
 ```
 
 - Descompresión: RLE
-
 ```bash
-./bin/FileUtility -d -i tests/inputFiles/decompress/Test_D.txt -o tests/outputFiles/decompress/test_Decompressed.txt --comp-alg RLE
+./bin/FileUtility -d -i tests/TestComp.dat -o tests/TestDecomp.txt --comp-alg RLE
 ```
+
+### Encriptación y desencriptación
+Usa el archivo `tests/Test1E.txt` para los casos de encriptación y desencriptación:
+
 - Encriptación: Vigenere
-
 ```bash
-./bin/FileUtility -e -i tests/inputFiles/encryption/Test_E.txt -o tests/outputFiles/encryption/test_encryption.txt --enc-alg VIG -k MiClave
+./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEnc.dat --enc-alg VIG -k MiClave
 ```
 
-- Desncriptación: Vigenere
-
+- Desencriptación: Vigenere
 ```bash
-./bin/FileUtility -u -i tests/inputFiles/desencryption/Test_DE.txt -o tests/outputFiles/desencryption/test_desencryption.txt --enc-alg VIG -k MiClave
+./bin/FileUtility -u -i tests/TestEnc.dat -o tests/TestDec.txt --enc-alg VIG -k MiClave
 ```
 

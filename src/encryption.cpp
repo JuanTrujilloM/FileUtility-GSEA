@@ -6,6 +6,8 @@
 #include <cctype>
 #include <iostream>
 
+
+// ALgortimo Vigenere
 // Normaliza una letra de la clave a valor 0-25 (A/a=0, B/b=1, etc.)
 static int getKeyValue(char c) {
 	if (c >= 'A' && c <= 'Z') return c - 'A';
@@ -152,4 +154,16 @@ bool decryptVigenere(const std::string &inputPath, const std::string &outputPath
 	closeFile(inFd);
 	closeFile(outFd);
 	return true;
+}
+
+// Algortimo AES-128
+bool encryptAES128(const std::string &inputPath, const std::string &outputPath, const std::string &key) {
+	// Implementación pendiente
+	std::cerr << "Error: AES-128 no está implementado aún" << std::endl;
+	return false;
+}
+bool decryptAES128(const std::string &inputPath, const std::string &outputPath, const std::string &key) {
+	// Implementación pendiente
+	std::cerr << "Error: AES-128 no está implementado aún" << std::endl;
+	return false;
 }

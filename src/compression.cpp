@@ -6,6 +6,7 @@
 #include <vector>
 
 // Compress usando Run-Length Encoding (RLE)
+// Formato: [count:4bytes][char:1byte] repetido
 void compressRLE(const std::string &inputPath, const std::string &outputPath) {
 
     // Abrir archivos de entrada y salida
@@ -18,27 +19,31 @@ void compressRLE(const std::string &inputPath, const std::string &outputPath) {
         return;
     }
 
-    // Lógica de compresión RLE
+    // Lógica de compresión RLE con formato binario
     char currentChar;
     char previousChar = '\0';
     int count = 0;
+    bool first = true;
 
     while (readFile(inputFd, &currentChar, 1) == 1) {
-        if (currentChar == previousChar) {
+        if (!first && currentChar == previousChar) {
             count++;
         } else {
-            if (count > 0) {
-                std::string toWrite = std::to_string(count) + previousChar;
-                writeFile(outputFd, toWrite.c_str(), toWrite.size());
+            if (!first) {
+                // Escribir count (4 bytes) + carácter (1 byte)
+                writeFile(outputFd, &count, sizeof(int));
+                writeFile(outputFd, &previousChar, 1);
             }
             previousChar = currentChar;
             count = 1;
+            first = false;
         }
     }
 
-    if (count > 0) {
-        std::string toWrite = std::to_string(count) + previousChar;
-        writeFile(outputFd, toWrite.c_str(), toWrite.size());
+    // Escribir el último par count+char
+    if (!first) {
+        writeFile(outputFd, &count, sizeof(int));
+        writeFile(outputFd, &previousChar, 1);
     }
 
     closeFile(inputFd);
@@ -46,6 +51,7 @@ void compressRLE(const std::string &inputPath, const std::string &outputPath) {
 }
 
 // Decompress usando Run-Length Encoding (RLE)
+// Formato esperado: [count:4bytes][char:1byte] repetido
 void decompressRLE(const std::string &inputPath, const std::string &outputPath) {
 
     // Abrir archivos de entrada y salida
@@ -58,29 +64,14 @@ void decompressRLE(const std::string &inputPath, const std::string &outputPath) 
         return;
     }
 
-    // Lógica de descompresión RLE
-    char buffer[1024];
-    ssize_t bytesRead;
-    std::string accumulated = "";
-
-    while ((bytesRead = readFile(inputFd, buffer, sizeof(buffer))) > 0) {
-        accumulated.append(buffer, bytesRead);
-    }
-
-    size_t i = 0;
-    while (i < accumulated.size()) {
-
-        int count = 0;
-
-        while (i < accumulated.size() && isdigit(accumulated[i])) {
-            count = count * 10 + (accumulated[i] - '0');
-            i++;
-        }
-        
-        if (i < accumulated.size()) {
-            char ch = accumulated[i];
-            i++;
-            
+    // Lógica de descompresión RLE con formato binario
+    int count;
+    char ch;
+    
+    // Leer pares de [count][char] hasta el final del archivo
+    while (readFile(inputFd, &count, sizeof(int)) == sizeof(int)) {
+        if (readFile(inputFd, &ch, 1) == 1) {
+            // Escribir el carácter 'count' veces
             for (int j = 0; j < count; j++) {
                 writeFile(outputFd, &ch, 1);
             }
@@ -89,4 +80,14 @@ void decompressRLE(const std::string &inputPath, const std::string &outputPath) 
 
     closeFile(inputFd);
     closeFile(outputFd);
+}
+
+// Algoritmo Lempel-Ziv-Welch (LZW)
+
+void compressLZW(const std::string &inputPath, const std::string &outputPath) {
+    // Implementación pendiente
+}
+
+void decompressLZW(const std::string &inputPath, const std::string &outputPath) {
+    // Implementación pendiente
 }

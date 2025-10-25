@@ -1,12 +1,1 @@
 bin/
-
-# Ignorar contenido de carpetas de pruebas, pero mantener las carpetas con .gitkeep
-tests/outputFiles/compress/*
-!tests/outputFiles/compress/.gitkeep
-tests/outputFiles/decompress/*
-!tests/outputFiles/decompress/.gitkeep
-
-tests/outputFiles/encryption/*
-!tests/outputFiles/encryption/.gitkeep
-tests/outputFiles/desencryption/*
-!tests/outputFiles/desencryption/.gitkeep

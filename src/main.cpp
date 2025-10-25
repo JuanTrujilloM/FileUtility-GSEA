@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cstdio>                // Para remove() de archivos temporales
 #include "fileManager.h"        // Para manejar la entrada/salida de archivos
 #include "compression.h"         // Para compresión
 #include "encryption.h"          // Para encriptación
