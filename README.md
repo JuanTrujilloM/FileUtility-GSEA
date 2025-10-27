@@ -85,12 +85,32 @@ Usa el archivo `tests/Test1C.txt` para los casos de compresión y descompresión
 ./bin/FileUtility -d -i tests/TestComp.dat -o tests/TestDecomp.txt --comp-alg RLE
 ```
 
+- Compresión: LZW
+```bash
+./bin/FileUtility -c -i tests/Test1C.txt -o tests/TestCompLZW.dat --comp-alg LZW
+```
+
+- Descompresión: LZW
+```bash
+./bin/FileUtility -d -i tests/TestCompLZW.dat -o tests/TestDecompLZW.txt --comp-alg LZW
+```
+
+- Compresión: Huffman
+```bash
+./bin/FileUtility -c -i tests/Test1C.txt -o tests/TestCompHuff.dat --comp-alg Huff
+```
+
+- Descompresión: Huffman
+```bash
+./bin/FileUtility -d -i tests/TestCompHuff.dat -o tests/TestDecompHuff.txt --comp-alg Huffman
+```
+
 ### Encriptación y desencriptación
-Usa el archivo `tests/Test1E.txt` para los casos de encriptación y desencriptación:
+Usa el archivo `tests/Test1CyE.txt` para los casos de encriptación y desencriptación:
 
 - Encriptación: Vigenere
 ```bash
-./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEnc.dat --enc-alg VIG -k MiClave
+./bin/FileUtility -e -i tests/Test1CyE.txt -o tests/TestEnc.dat --enc-alg VIG -k MiClave
 ```
 
 - Desencriptación: Vigenere
