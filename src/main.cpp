@@ -78,7 +78,22 @@ int main(int argc, char* argv[]) {
             compressRLE(input_file, output_file);
             long long after = getFileSize(output_file);
             std::cout << "[Compresión:RLE] Tamaño después: " << after << " bytes" << std::endl;
-        } else {
+        }
+        else if (comp_algorithm == "LZW") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Compresión:LZW] Tamaño antes: " << before << " bytes" << std::endl;
+            compressLZW(input_file, output_file);
+            long long after = getFileSize(output_file);
+            std::cout << "[Compresión:LZW] Tamaño después: " << after << " bytes" << std::endl;
+        }
+        else if (comp_algorithm == "Huff") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Compresión:Huffman] Tamaño antes: " << before << " bytes" << std::endl;
+            compressHuffman(input_file, output_file);
+            long long after = getFileSize(output_file);
+            std::cout << "[Compresión:Huffman] Tamaño después: " << after << " bytes" << std::endl;
+        }
+        else {
             std::cout << "Algoritmo de compresión no soportado: " << comp_algorithm << std::endl;
         }
     }
@@ -94,7 +109,22 @@ int main(int argc, char* argv[]) {
             decompressRLE(input_file, output_file);
             long long after = getFileSize(output_file);
             std::cout << "[Descompresión:RLE] Tamaño después: " << after << " bytes" << std::endl;
-        } else {
+        } 
+        else  if (comp_algorithm == "LZW") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Descompresión:LZW] Tamaño antes: " << before << " bytes" << std::endl;
+            decompressLZW(input_file, output_file);
+            long long after = getFileSize(output_file);
+            std::cout << "[Descompresión:LZW] Tamaño después: " << after << " bytes" << std::endl;
+        }
+        else if (comp_algorithm == "Huff") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Descompresión:Huffman] Tamaño antes: " << before << " bytes" << std::endl;
+            decompressHuffman(input_file, output_file);
+            long long after = getFileSize(output_file);
+            std::cout << "[Descompresión:Huffman] Tamaño después: " << after << " bytes" << std::endl;
+        }
+        else {
             std::cout << "Algoritmo de compresión no soportado: " << comp_algorithm << std::endl;
         }
     }
