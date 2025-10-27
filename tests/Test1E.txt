@@ -1,7 +1,49 @@
-La encriptación es una técnica fundamental en la seguridad informática moderna. Consiste en transformar información legible en un formato codificado que solo puede ser interpretado por quienes poseen la clave adecuada. Desde la antigüedad, los métodos de cifrado han evolucionado, pasando de simples sustituciones de letras a complejos algoritmos matemáticos que protegen datos en sistemas digitales. En la actualidad, la encriptación se utiliza para resguardar comunicaciones, archivos personales, transacciones bancarias y datos sensibles en la nube.
+Historia de Colombia
 
-Uno de los algoritmos más conocidos es el cifrado simétrico, donde la misma clave se emplea tanto para encriptar como para desencriptar la información. Ejemplos de este tipo son AES y DES, ampliamente usados en aplicaciones comerciales y gubernamentales. Por otro lado, el cifrado asimétrico utiliza un par de claves: una pública y una privada. Este método permite compartir información de manera segura sin necesidad de intercambiar la clave secreta, y es la base de tecnologías como SSL/TLS y firmas digitales.
+Colombia, una nación situada en la región noroccidental de América del Sur, tiene una rica y compleja historia que abarca desde tiempos precolombinos hasta la actualidad. Su geografía variada, que incluye selvas tropicales, montañas, llanuras y costas en el Caribe y el Pacífico, ha influido profundamente en su desarrollo cultural, político y económico. La historia de Colombia ha estado marcada por la diversidad de sus pueblos, los encuentros y desencuentros con los colonizadores europeos, las luchas por la independencia, y los complejos procesos políticos y sociales que la han definido en los siglos XIX, XX y XXI.
 
-La encriptación no solo protege la confidencialidad, sino que también garantiza la integridad y autenticidad de los datos. Los sistemas modernos implementan protocolos de seguridad que combinan encriptación con autenticación y verificación de identidad, dificultando el acceso no autorizado y la manipulación de la información. Sin embargo, la fortaleza de cualquier sistema de encriptación depende de la robustez de las claves y la correcta implementación de los algoritmos.
+Los pueblos indígenas precolombinos
 
-En el contexto de la vida cotidiana, la encriptación está presente en aplicaciones de mensajería, plataformas de comercio electrónico y servicios de almacenamiento en línea. Los usuarios confían en que sus datos personales y financieros están protegidos gracias a estas tecnologías. A medida que aumentan las amenazas cibernéticas, la investigación en nuevos métodos de encriptación y la educación sobre buenas prácticas de seguridad se vuelven cada vez más relevantes para individuos y organizaciones.
+Antes de la llegada de los españoles, el territorio que hoy conocemos como Colombia estaba habitado por una gran diversidad de pueblos indígenas, con culturas y estructuras sociales muy distintas. Entre los grupos más conocidos se encuentran los zenúes, que vivían en la región Caribe; los muiscas, en la región central andina; los taironas, en la Sierra Nevada de Santa Marta; y los quimbayas, famosos por su orfebrería. Los muiscas, en particular, formaron una confederación de tribus que coexistían en lo que hoy es el altiplano cundiboyacense, en la zona centro del país. Su sistema político era muy avanzado, con un gobierno confederado que consistía en diferentes tribus bajo el liderazgo de un zipa (gobernante) y un zipa para la región del altiplano.
+
+La leyenda del El Dorado surge de los rituales de los muiscas, que, al parecer, cubrían su cuerpo con polvo de oro durante ciertas ceremonias religiosas. Este mito fue uno de los grandes motores que atrajo a los conquistadores españoles a la región.
+
+La llegada de los españoles y la colonización
+
+En 1499, el navegante español Alonso de Ojeda llegó a las costas del actual Colombia, en la región del Golfo de Urabá. Sin embargo, la verdadera conquista comenzó con la llegada de Gonzalo Jiménez de Quesada, quien, en 1536, fundó la ciudad de Santa Fé de Bogotá, en el corazón de la zona muisca. Esto marcó el inicio de un largo proceso de colonización que se extendió por toda la región andina, el Caribe y la Amazonía.
+
+La colonización española fue brutal para los pueblos indígenas. A través de la encomienda y otros sistemas de explotación, los colonizadores impusieron su dominio y lograron reducir drásticamente la población nativa, ya sea por enfermedades, trabajo forzado o matanzas. Durante esta época, se estableció un sistema colonial basado en la minería (especialmente de oro y esmeraldas), la agricultura y la ganadería, con el trabajo indígena como columna vertebral de la economía.
+
+La independencia de Colombia
+
+A finales del siglo XVIII y principios del XIX, las ideas de la Ilustración europea y los movimientos independentistas que ya se gestaban en otras partes de América Latina influyeron en los criollos (descendientes de españoles nacidos en América). La situación política de las colonias españolas era cada vez más tensa debido al descontento con el gobierno colonial, las injusticias sociales y las crecientes ideas republicanas.
+
+El 20 de julio de 1810, en la ciudad de Bogotá, se dio el primer grito de independencia. Este evento marcó el inicio de un proceso largo y sangriento que culminaría con la independencia definitiva del territorio de la Nueva Granada (como se conocía a la antigua Colombia) en 1819, cuando el General Simón Bolívar consolidó la victoria tras la batalla de Boyacá.
+
+La independencia no fue fácil. Colombia, como muchas otras regiones de América Latina, vivió años de conflictos, guerras civiles y disputas internas. A pesar de la victoria, Bolívar enfrentó grandes dificultades para unificar los territorios que se habían independizado, lo que dio lugar a un proceso de fragmentación política.
+
+La Gran Colombia y la separación
+
+Simón Bolívar, el líder máximo de la independencia, fundó la Gran Colombia en 1819, una república unificada que incluía a lo que hoy son Colombia, Venezuela, Ecuador y Panamá. Sin embargo, la Gran Colombia fue un experimento político fallido. Las diferencias regionales, los conflictos de poder y las tensiones entre los caudillos locales hicieron que la unión fuera insostenible. En 1831, después de la renuncia de Bolívar a la presidencia y su posterior muerte, la Gran Colombia se disolvió, y Colombia, en su forma actual, nació como la República de la Nueva Granada, que en 1858 pasaría a llamarse Confederación Granadina, y finalmente, en 1863, la República de Colombia.
+
+La guerra de los mil días y la violencia política
+
+Durante el siglo XIX, Colombia sufrió numerosas guerras internas entre facciones liberales y conservadoras. Uno de los conflictos más grandes fue la Guerra de los Mil Días (1899-1902), un conflicto civil entre liberales y conservadores que dejó miles de muertos y una nación devastada. Esta guerra también marcó el fin de la hegemonía de los liberales y consolidó el poder conservador en la política colombiana.
+
+Este conflicto fue parte de un ciclo de violencia política que caracterizó la historia del país durante gran parte de su existencia. Las tensiones entre liberales y conservadores, sumadas a la desigualdad social, llevaron a periodos de guerra y represalias violentas.
+
+El siglo XX: Violencia, narcotráfico y violencia armada
+
+A lo largo del siglo XX, Colombia continuó siendo un país marcado por la violencia. A partir de la década de 1940, un periodo conocido como La Violencia (1948-1958) enfrentó a liberales y conservadores en un enfrentamiento sangriento, que dejó miles de muertos. El asesinato del líder liberal Jorge Eliécer Gaitán en 1948 desató una serie de revueltas y masacres que sumieron al país en una guerra civil no declarada.
+
+En las décadas siguientes, el país experimentó la aparición de grupos guerrilleros como las FARC (Fuerzas Armadas Revolucionarias de Colombia), el ELN (Ejército de Liberación Nacional) y otros grupos insurgentes, que luchaban por un cambio social y económico, pero a menudo utilizando métodos violentos. Al mismo tiempo, el narcotráfico se convirtió en un problema grave. Carteles como el de Pablo Escobar y el Cartel de Cali ganaron poder y controlaron vastas zonas del país, llevando a Colombia a una era de violencia relacionada con el tráfico de drogas.
+
+En las décadas de los 80 y 90, los carteles de droga eran responsables de miles de muertes y atentados, incluidos los ataques a políticos, periodistas y ciudadanos comunes. El conflicto armado interno y el narcotráfico fueron dos de los principales motores de la violencia en Colombia durante estos años.
+
+El proceso de paz y la Colombia moderna
+
+A partir de la década de 2000, el gobierno colombiano bajo la presidencia de Álvaro Uribe Vélez inició una serie de políticas para combatir el narcotráfico y los grupos armados ilegales. Las fuerzas militares y de policía colombianas ganaron terreno en la lucha contra los narcotraficantes y las guerrillas, pero esto también generó críticas por violaciones de derechos humanos y desplazamiento forzado de comunidades.
+
+En los últimos años, ha habido intentos de paz. En 2016, el gobierno de Juan Manuel Santos alcanzó un acuerdo histórico con las FARC, poniendo fin a más de 50 años de conflicto armado. Aunque este acuerdo ha sido un paso importante hacia la paz, Colombia todavía enfrenta retos significativos relacionados con la violencia, la desigualdad social y los efectos del narcotráfico.
+
+Hoy en día, Colombia sigue siendo un país dinámico y en constante cambio, con una economía en crecimiento, una cultura vibrante y una sociedad que continúa lidiando con las secuelas de su historia tumultuosa. La violencia no ha desaparecido por completo, pero la esperanza de un futuro más pacífico y próspero sigue siendo un anhelo central para muchos colombianos.
