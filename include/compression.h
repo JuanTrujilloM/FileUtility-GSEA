@@ -14,4 +14,10 @@ void compressLZW(const std::string &inputPath, const std::string &outputPath);
 
 void decompressLZW(const std::string &inputPath, const std::string &outputPath);
 
+
+// Algoritmo Huffman
+void compressHuffman(const std::string &inputPath, const std::string &outputPath);
+
+void decompressHuffman(const std::string &inputPath, const std::string &outputPath);
+
 #endif
