@@ -2,16 +2,12 @@
 #include "fileManager.h"
 #include <unistd.h>
 #include <fcntl.h>
-#include <iostream>
+#include <string>
 #include <vector>
 #include <unordered_map>
 #include <cstdint>
 #include <queue>
-#include <memory>
 #include <array>
-#include <cstring>
-#include <algorithm>
-#include <functional>
 
 // Compress usando Run-Length Encoding (RLE)
 // Formato: [count:4bytes][char:1byte] repetido
@@ -233,290 +229,229 @@ void decompressLZW(const std::string &inputPath, const std::string &outputPath) 
 }
 
 // Compress usando Huffman
-// Formato: [magic:4bytes='HUF1'][total:uint64_t][freqs:256 x uint64_t][payload:bits empaquetados en bytes]
+// Formato:[Header][Payload Comprimido]
+
+// Nodo del árbol Huffman
+struct HuffNode {
+    uint64_t freq;
+    unsigned char ch;
+    HuffNode* left;
+    HuffNode* right;
+    HuffNode(uint64_t f, unsigned char c) : freq(f), ch(c), left(nullptr), right(nullptr) {}
+    HuffNode(uint64_t f, HuffNode* l, HuffNode* r) : freq(f), ch(0), left(l), right(r) {}
+};
+
+// Comparador para la cola de prioridad (min-heap)
+struct NodeCmp {
+    bool operator()(HuffNode* a, HuffNode* b) const {
+        return a->freq > b->freq;
+    }
+};
+
+// Liberar memoria del árbol Huffman
+static void freeTree(HuffNode* node) {
+    if (!node) return;
+    freeTree(node->left);
+    freeTree(node->right);
+    delete node;
+}
+
+// Construir códigos recursivamente
+static void buildCodes(HuffNode* node, const std::string &prefix, std::array<std::string,256> &codes) {
+    if (!node) return;
+    if (!node->left && !node->right) {
+        // hoja
+        codes[node->ch] = (prefix.empty() ? "0" : prefix); // caso único símbolo
+        return;
+    }
+    if (node->left) buildCodes(node->left, prefix + '0', codes);
+    if (node->right) buildCodes(node->right, prefix + '1', codes);
+}
+
 void compressHuffman(const std::string &inputPath, const std::string &outputPath) {
-    // Abrir archivos
     int inputFd = openFile(inputPath, O_RDONLY);
     if (inputFd == -1) return;
-
     int outputFd = openFile(outputPath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (outputFd == -1) {
-        closeFile(inputFd);
-        return;
+    if (outputFd == -1) { closeFile(inputFd); return; }
+
+    // Leer todo el archivo
+    std::vector<unsigned char> data;
+    const size_t BUF_SZ = 4096;
+    std::vector<char> buf(BUF_SZ);
+    ssize_t r;
+    while ((r = readFile(inputFd, buf.data(), BUF_SZ)) > 0) {
+        data.insert(data.end(), buf.data(), buf.data() + r);
     }
 
-    // Obtener tamaño y leer todo el archivo en memoria
-    long long size = getFileSize(inputPath);
-    std::vector<uint8_t> data;
-    if (size > 0) {
-        data.resize(size);
-        ssize_t r = readFile(inputFd, data.data(), data.size());
-        if (r <= 0) {
-            // nada que comprimir
-            closeFile(inputFd);
-            closeFile(outputFd);
-            return;
-        }
-    } else {
-        // archivo vacío: escribir header mínimo y salir
-        char magic[4] = {'H','U','F','1'};
-        writeFile(outputFd, magic, 4);
-        uint64_t total = 0;
-        writeFile(outputFd, &total, sizeof(total));
-        uint64_t zero = 0;
-        for (int i = 0; i < 256; ++i) writeFile(outputFd, &zero, sizeof(zero));
+    uint64_t origSize = data.size();
+    if (origSize == 0) {
+        // escribir cabecera vacía: tamaño 0 y sin símbolos
+        uint64_t z = 0;
+        uint16_t zerosyms = 0;
+        writeFile(outputFd, &z, sizeof(z));
+        writeFile(outputFd, &zerosyms, sizeof(zerosyms));
         closeFile(inputFd);
         closeFile(outputFd);
         return;
     }
 
-    // Contar frecuencias
-    std::array<uint64_t, 256> freq{};
-    uint64_t total = 0;
-    for (uint8_t b : data) {
-        ++freq[b];
-        ++total;
-    }
+    // frecuencia
+    std::array<uint64_t,256> freq{};
+    for (unsigned char c : data) freq[c]++;
 
-    // Construir árbol Huffman
-    struct Node {
-        uint64_t freq;
-        int byte; // -1 para nodos internos
-        std::shared_ptr<Node> left, right;
-        Node(uint64_t f, int b) : freq(f), byte(b), left(nullptr), right(nullptr) {}
-        Node(uint64_t f, std::shared_ptr<Node> l, std::shared_ptr<Node> r) : freq(f), byte(-1), left(l), right(r) {}
-    };
-
-    // Comparador para priority_queue
-    auto cmp = [](const std::shared_ptr<Node> &a, const std::shared_ptr<Node> &b) {
-        return a->freq > b->freq;
-    };
-
-    // Construir la cola de prioridad
-    std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>, decltype(cmp)> pq(cmp);
-
-    // Insertar nodos hoja
+    // construir cola de prioridad
+    std::priority_queue<HuffNode*, std::vector<HuffNode*>, NodeCmp> pq;
     for (int i = 0; i < 256; ++i) {
-        if (freq[i] > 0) pq.push(std::make_shared<Node>(freq[i], i));
+        if (freq[i] > 0) {
+            pq.push(new HuffNode(freq[i], static_cast<unsigned char>(i)));
+        }
     }
 
-    // Manejar caso especial: archivo vacío
+    // construir árbol
     if (pq.empty()) {
-        // no hay datos
+        // no hay datos (ya manejado), pero por seguridad
         closeFile(inputFd);
         closeFile(outputFd);
         return;
     }
-
-    // Construir el árbol combinando nodos
     while (pq.size() > 1) {
-        auto a = pq.top(); pq.pop();
-        auto b = pq.top(); pq.pop();
-        pq.push(std::make_shared<Node>(a->freq + b->freq, a, b));
+        HuffNode* a = pq.top(); pq.pop();
+        HuffNode* b = pq.top(); pq.pop();
+        HuffNode* parent = new HuffNode(a->freq + b->freq, a, b);
+        pq.push(parent);
     }
+    HuffNode* root = pq.top();
 
-    // Raíz del árbol
-    auto root = pq.top();
+    // generar códigos
+    std::array<std::string,256> codes;
+    for (auto &s : codes) s.clear();
+    buildCodes(root, "", codes);
 
-    // Generar códigos (mapa byte -> vector<bool>)
-    std::array<std::vector<bool>, 256> codes;
+    // Escribir cabecera: tamaño original (uint64_t), número de símbolos (uint16_t),
+    // luego para cada símbolo: uint8_t ch + uint64_t freq
+    uint64_t origSizeLE = origSize;
+    uint16_t uniqueSymbols = 0;
+    for (int i = 0; i < 256; ++i) if (freq[i] > 0) ++uniqueSymbols;
 
-    // Función recursiva para recorrer el árbol y asignar códigos
-    std::function<void(const std::shared_ptr<Node>&, std::vector<bool>&)> buildCodes;
-    buildCodes = [&](const std::shared_ptr<Node> &n, std::vector<bool> &prefix) {
-        if (!n) return;
-        if (!n->left && !n->right) {
-            // hoja
-            if (prefix.empty()) {
-                // caso especial: un solo símbolo -> asignar 0
-                codes[n->byte] = {false};
-            } else {
-                codes[n->byte] = prefix;
-            }
-            return;
-        }
-        prefix.push_back(false);
-        buildCodes(n->left, prefix);
-        prefix.back() = true;
-        buildCodes(n->right, prefix);
-        prefix.pop_back();
-    };
-
-    std::vector<bool> tmp;
-    buildCodes(root, tmp);
-
-    // Escribir header: magic 'HUF1', total (uint64_t), 256 x uint64_t freq
-    char magic[4] = {'H','U','F','1'};
-    writeFile(outputFd, magic, 4);
-    writeFile(outputFd, &total, sizeof(total));
+    writeFile(outputFd, &origSizeLE, sizeof(origSizeLE));
+    writeFile(outputFd, &uniqueSymbols, sizeof(uniqueSymbols));
     for (int i = 0; i < 256; ++i) {
-        writeFile(outputFd, &freq[i], sizeof(freq[i]));
+        if (freq[i] > 0) {
+            uint8_t ch = static_cast<uint8_t>(i);
+            uint64_t f = freq[i];
+            writeFile(outputFd, &ch, sizeof(ch));
+            writeFile(outputFd, &f, sizeof(f));
+        }
     }
 
-    // Empaquetar bits y escribir payload
-    uint8_t current = 0;
-    int bitCount = 0; // número de bits ya en 'current' (0..7)
-    auto flushByte = [&]() {
-        writeFile(outputFd, &current, 1);
-        current = 0;
-        bitCount = 0;
-    };
-
-    // Codificar datos
-    for (uint8_t b : data) {
-        const std::vector<bool> &code = codes[b];
-        for (bool bit : code) {
-            current = (current << 1) | (bit ? 1 : 0);
+    // Escribir el bitstream codificado (empaquetado en bytes)
+    unsigned char outByte = 0;
+    int bitCount = 0;
+    for (unsigned char c : data) {
+        const std::string &code = codes[c];
+        for (char bit : code) {
+            outByte <<= 1;
+            if (bit == '1') outByte |= 1;
             ++bitCount;
             if (bitCount == 8) {
-                flushByte();
+                writeFile(outputFd, &outByte, 1);
+                outByte = 0;
+                bitCount = 0;
             }
         }
     }
+    // padding: rellenar con ceros a la derecha en el último byte si es necesario
     if (bitCount > 0) {
-        // rellenar con ceros a la izquierda
-        current <<= (8 - bitCount);
-        writeFile(outputFd, &current, 1);
+        outByte <<= (8 - bitCount);
+        writeFile(outputFd, &outByte, 1);
     }
 
+    freeTree(root);
     closeFile(inputFd);
     closeFile(outputFd);
 }
 
 // Decompress usando Huffman
-// Formato esperado: [magic:4bytes='HUF1'][total:uint64_t][freqs:256 x uint64_t][payload:bits empaquetados en bytes]
+// Formato esperado: [Header][Payload Descomprimido]
 void decompressHuffman(const std::string &inputPath, const std::string &outputPath) {
-    // Abrir archivos
     int inputFd = openFile(inputPath, O_RDONLY);
     if (inputFd == -1) return;
-
     int outputFd = openFile(outputPath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (outputFd == -1) {
-        closeFile(inputFd);
-        return;
-    }
+    if (outputFd == -1) { closeFile(inputFd); return; }
 
-    // Leer magic
-    char magic[4];
-    if (readFile(inputFd, magic, 4) != 4) {
+    // leer cabecera
+    uint64_t origSize = 0;
+    if (readFile(inputFd, &origSize, sizeof(origSize)) != (ssize_t)sizeof(origSize)) {
         closeFile(inputFd);
         closeFile(outputFd);
         return;
     }
-    if (std::memcmp(magic, "HUF1", 4) != 0) {
-        // formato desconocido
+    uint16_t uniqueSymbols = 0;
+    if (readFile(inputFd, &uniqueSymbols, sizeof(uniqueSymbols)) != (ssize_t)sizeof(uniqueSymbols)) {
         closeFile(inputFd);
         closeFile(outputFd);
         return;
     }
-
-    // Leer total de símbolos
-    uint64_t totalSymbols = 0;
-    if (readFile(inputFd, &totalSymbols, sizeof(totalSymbols)) != sizeof(totalSymbols)) {
+    if (origSize == 0 || uniqueSymbols == 0) {
+        // archivo vacío -> nada que escribir
         closeFile(inputFd);
         closeFile(outputFd);
         return;
     }
 
-    // Leer tabla de frecuencias (256 entradas)
-    std::array<uint64_t, 256> freq{};
-    for (int i = 0; i < 256; ++i) {
-        uint64_t f = 0;
-        if (readFile(inputFd, &f, sizeof(f)) != sizeof(f)) {
+    // reconstruir tabla de frecuencias
+    std::array<uint64_t,256> freq{};
+    for (int i = 0; i < uniqueSymbols; ++i) {
+        uint8_t ch;
+        uint64_t f;
+        if (readFile(inputFd, &ch, sizeof(ch)) != (ssize_t)sizeof(ch) ||
+            readFile(inputFd, &f, sizeof(f)) != (ssize_t)sizeof(f)) {
             closeFile(inputFd);
             closeFile(outputFd);
             return;
         }
-        freq[i] = f;
+        freq[ch] = f;
     }
 
-    // Construir árbol Huffman
-    struct Node {
-        uint64_t freq;
-        int byte; // -1 para nodos internos
-        std::shared_ptr<Node> left, right;
-        Node(uint64_t f, int b) : freq(f), byte(b), left(nullptr), right(nullptr) {}
-        Node(uint64_t f, std::shared_ptr<Node> l, std::shared_ptr<Node> r) : freq(f), byte(-1), left(l), right(r) {}
-    };
-
-    // Comparador para priority_queue
-    auto cmp = [](const std::shared_ptr<Node> &a, const std::shared_ptr<Node> &b) {
-        return a->freq > b->freq;
-    };
-
-    // Construir la cola de prioridad
-    std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>, decltype(cmp)> pq(cmp);
-
-    // Insertar nodos hoja
+    // reconstruir árbol Huffman
+    std::priority_queue<HuffNode*, std::vector<HuffNode*>, NodeCmp> pq;
     for (int i = 0; i < 256; ++i) {
-        if (freq[i] > 0) {
-            pq.push(std::make_shared<Node>(freq[i], i));
-        }
+        if (freq[i] > 0) pq.push(new HuffNode(freq[i], static_cast<unsigned char>(i)));
     }
-
-    // Manejar caso especial: archivo vacío
-    if (pq.empty()) {
-        // Nada que decodificar
-        closeFile(inputFd);
-        closeFile(outputFd);
-        return;
-    }
-
-    // Construir el árbol combinando nodos
+    if (pq.empty()) { closeFile(inputFd); closeFile(outputFd); return; }
     while (pq.size() > 1) {
-        auto a = pq.top(); pq.pop();
-        auto b = pq.top(); pq.pop();
-        pq.push(std::make_shared<Node>(a->freq + b->freq, a, b));
+        HuffNode* a = pq.top(); pq.pop();
+        HuffNode* b = pq.top(); pq.pop();
+        HuffNode* parent = new HuffNode(a->freq + b->freq, a, b);
+        pq.push(parent);
     }
+    HuffNode* root = pq.top();
 
-    // Raíz del árbol
-    auto root = pq.top();
-
-    // Caso especial: solo un símbolo en todo el archivo
-    if (!root->left && !root->right) {
-        // escribir el byte 'totalSymbols' veces
-        uint8_t value = static_cast<uint8_t>(root->byte);
-        for (uint64_t i = 0; i < totalSymbols; ++i) {
-            writeFile(outputFd, &value, 1);
-        }
-        closeFile(inputFd);
-        closeFile(outputFd);
-        return;
-    }
-
-    // Ahora leer el resto del archivo (payload codificado en bits)
-    // Leer en bloques y decodificar bit por bit
-    const size_t BUF_SIZE = 4096;
-    std::vector<uint8_t> buffer(BUF_SIZE);
-    std::shared_ptr<Node> node = root;
-    uint64_t decoded = 0;
-
-    ssize_t r;
-    while ((r = readFile(inputFd, buffer.data(), BUF_SIZE)) > 0 && decoded < totalSymbols) {
-        for (ssize_t i = 0; i < r && decoded < totalSymbols; ++i) {
-            uint8_t byte = buffer[i];
-            for (int bit = 7; bit >= 0 && decoded < totalSymbols; --bit) {
-                int b = (byte >> bit) & 1;
-                if (b == 0) node = node->left;
-                else node = node->right;
-
-                if (!node) {
-                    // error en los bits
-                    closeFile(inputFd);
-                    closeFile(outputFd);
-                    return;
-                }
-
+    // Decodificar bit a bit
+    HuffNode* node = root;
+    uint64_t written = 0;
+    const size_t BUF_SZ = 4096;
+    std::vector<unsigned char> inbuf(BUF_SZ);
+    ssize_t rr;
+    // leer el resto del archivo por bloques
+    while ((rr = readFile(inputFd, reinterpret_cast<char*>(inbuf.data()), BUF_SZ)) > 0 && written < origSize) {
+        for (ssize_t i = 0; i < rr && written < origSize; ++i) {
+            unsigned char b = inbuf[i];
+            // procesar 8 bits, de msb a lsb (coincide con cómo escribimos)
+            for (int bit = 7; bit >= 0 && written < origSize; --bit) {
+                int v = (b >> bit) & 1;
+                node = (v == 0) ? node->left : node->right;
                 if (!node->left && !node->right) {
-                    uint8_t out = static_cast<uint8_t>(node->byte);
-                    writeFile(outputFd, &out, 1);
-                    ++decoded;
+                    unsigned char outc = node->ch;
+                    writeFile(outputFd, &outc, 1);
+                    ++written;
                     node = root;
                 }
             }
         }
     }
 
+    freeTree(root);
     closeFile(inputFd);
     closeFile(outputFd);
 }
