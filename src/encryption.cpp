@@ -302,11 +302,11 @@ bool encryptAES128(const std::string &inputPath, const std::string &outputPath, 
 	// Helper: obtener 16 bytes aleatorios desde /dev/urandom
 	auto getRandom16 = [&]()->std::array<uint8_t,16>{
 		std::array<uint8_t,16> rv{};
-		int rnd = open("/dev/urandom", O_RDONLY);
+		int rnd = openFile("/dev/urandom", O_RDONLY);
 		if (rnd != -1) {
-			ssize_t r = read(rnd, rv.data(), 16);
+			ssize_t r = readFile(rnd, rv.data(), 16);
 			(void)r;
-			close(rnd);
+			closeFile(rnd);
 		} else {
 			for (int i=0;i<16;++i) rv[i] = static_cast<uint8_t>(i);
 		}
