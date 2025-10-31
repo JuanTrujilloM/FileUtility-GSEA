@@ -231,3 +231,12 @@ void decompressLZW(const std::string &inputPath, const std::string &outputPath) 
     closeFile(inputFd);
     closeFile(outputFd);
 }
+
+// Compresión Huffman
+void compressHuffman(const std::string &inputPath, const std::string &outputPath) {
+    // Implementación pendiente
+}
+
+void decompressHuffman(const std::string &inputPath, const std::string &outputPath) {
+    // Implementación pendiente
+}
