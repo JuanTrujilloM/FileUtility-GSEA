@@ -118,3 +118,18 @@ Usa el archivo `tests/Test1CyE.txt` para los casos de encriptación y desencript
 ./bin/FileUtility -u -i tests/TestEnc.dat -o tests/TestDec.txt --enc-alg VIG -k MiClave
 ```
 
+- Encriptación: AES-128 (CBC)
+```bash
+./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEncAES.dat --enc-alg AES -k mysecretkey12345
+```
+
+- Desencriptación: AES-128 (CBC)
+```bash
+./bin/FileUtility -u -i tests/TestEncAES.dat -o tests/TestDecAES.txt --enc-alg AES -k mysecretkey12345
+```
+
+### Notas sobre AES
+- El cifrado AES-128 está implementado en modo CBC.
+- El vector de inicialización (IV) de 16 bytes se escribe al comienzo del fichero cifrado (primeros 16 bytes).
+- Se usa padding PKCS#7; al desencriptar se valida y elimina el padding.
+

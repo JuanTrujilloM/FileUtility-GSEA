@@ -145,6 +145,17 @@ int main(int argc, char* argv[]) {
             encryptVigenere(input_file, output_file, key);
             long long after = getFileSize(output_file);
             std::cout << "[Encriptación:Vigenère] Tamaño después: " << after << " bytes" << std::endl;
+        }
+        // Para AES-128
+        else if (enc_algorithm == "AES" || enc_algorithm == "AES128" || enc_algorithm == "AES-128") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Encriptación:AES-128] Tamaño antes: " << before << " bytes" << std::endl;
+            if (!encryptAES128(input_file, output_file, key)) {
+                std::cout << "Fallo en la encriptación AES-128" << std::endl;
+                return 1;
+            }
+            long long after = getFileSize(output_file);
+            std::cout << "[Encriptación:AES-128] Tamaño después: " << after << " bytes" << std::endl;
         } else {
             std::cout << "Algoritmo de encriptación no soportado: " << enc_algorithm << std::endl;
         } 
@@ -170,6 +181,20 @@ int main(int argc, char* argv[]) {
             }
             long long after = getFileSize(output_file);
             std::cout << "[Desencriptación:Vigenère] Tamaño después: " << after << " bytes" << std::endl;
+<<<<<<< HEAD
+=======
+        }
+        // Para AES-128
+        else if (enc_algorithm == "AES" || enc_algorithm == "AES128" || enc_algorithm == "AES-128") {
+            long long before = getFileSize(input_file);
+            std::cout << "[Desencriptación:AES-128] Tamaño antes: " << before << " bytes" << std::endl;
+            if (!decryptAES128(input_file, output_file, key)) {
+                std::cout << "Fallo en la desencriptación AES-128" << std::endl;
+                return 1;
+            }
+            long long after = getFileSize(output_file);
+            std::cout << "[Desencriptación:AES-128] Tamaño después: " << after << " bytes" << std::endl;
+>>>>>>> 88093fb (implementacion del algoritmo AES)
         } else {
             std::cout << "Algoritmo de encriptación no soportado: " << enc_algorithm << std::endl;
         }
