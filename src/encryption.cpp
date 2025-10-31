@@ -5,14 +5,11 @@
 #include <cstddef>
 #include <cctype>
 #include <iostream>
-<<<<<<< HEAD
-=======
 #include <vector>
 #include <cstdint>
 #include <array>
 #include <cstring>
 #include <algorithm>
->>>>>>> 88093fb (implementacion del algoritmo AES)
 
 
 // ALgortimo Vigenere
