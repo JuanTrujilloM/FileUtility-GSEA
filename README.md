@@ -102,11 +102,11 @@ Usa el archivo `tests/Test1C.txt` para los casos de compresión y descompresión
 
 - Descompresión: Huffman
 ```bash
-./bin/FileUtility -d -i tests/TestCompHuff.dat -o tests/TestDecompHuff.txt --comp-alg Huffman
+./bin/FileUtility -d -i tests/TestCompHuff.dat -o tests/TestDecompHuff.txt --comp-alg Huff
 ```
 
 ### Encriptación y desencriptación
-Usa el archivo `tests/Test1CyE.txt` para los casos de encriptación y desencriptación:
+Usa el archivo `tests/Test1E.txt` para los casos de encriptación y desencriptación:
 
 - Encriptación: Vigenere
 ```bash
@@ -120,11 +120,23 @@ Usa el archivo `tests/Test1CyE.txt` para los casos de encriptación y desencript
 
 - Encriptación: AES-128 (CBC)
 ```bash
-./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEncAES.dat --enc-alg AES -k mysecretkey12345
+./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEncAES.dat --enc-alg AES -k MiClave
 ```
 
 - Desencriptación: AES-128 (CBC)
 ```bash
-./bin/FileUtility -u -i tests/TestEncAES.dat -o tests/TestDecAES.txt --enc-alg AES -k mysecretkey12345
+./bin/FileUtility -u -i tests/TestEncAES.dat -o tests/TestDecAES.txt --enc-alg AES -k MiClave
 ```
 
+### Operaciones combinadas
+Usa puede usar el archivo `tests/Test1C.txt` para los casos combinados y cabe aclarar que las combinaciones pueden llegar a ser muchas dependiendo de los algoritmos seleccionados, por ejemplo:
+
+- Comprimir y encriptar:
+```bash
+./bin/FileUtility -ce -i tests/Test1C.txt -o tests/out.dat --comp-alg LZW --enc-alg AES128 -k MiClave
+```
+
+- Desencriptar y descomprimir:
+```bash
+./bin/FileUtility -ud -i tests/out.dat -o tests/recovered.txt --enc-alg AES128 --comp-alg LZW -k MiClave
+```

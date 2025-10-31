@@ -12,7 +12,8 @@
 #include <algorithm>
 
 
-// ALgortimo Vigenere
+// Encrypt usando Vigenere
+// Formato: [Payload cifrado]
 // Normaliza una letra de la clave a valor 0-25 (A/a=0, B/b=1, etc.)
 static int getKeyValue(char c) {
 	if (c >= 'A' && c <= 'Z') return c - 'A';
@@ -91,6 +92,8 @@ bool encryptVigenere(const std::string &inputPath, const std::string &outputPath
 	return true;
 }
 
+// Decrypt usando Vigenere
+// Formato esperado: [Payload descifrado]
 bool decryptVigenere(const std::string &inputPath, const std::string &outputPath, const std::string &key) {
 	if (key.empty()) {
 		std::cerr << "Error: la clave no puede estar vacía" << std::endl;
@@ -161,7 +164,11 @@ bool decryptVigenere(const std::string &inputPath, const std::string &outputPath
 	return true;
 }
 
-// Algortimo AES-128
+// Encrypt usando AES-128
+// Modo CBC con padding PKCS#7
+// La clave se ajusta a 16 bytes (truncando o repitiendo)
+// El vector de inicialización (IV) se genera aleatoriamente y se escribe al inicio del archivo cifrado
+// Formato: [IV:16 bytes][Payload cifrado]
 bool encryptAES128(const std::string &inputPath, const std::string &outputPath, const std::string &key) {
 	// AES-128 CBC streaming + PKCS#7 padding.
 	// Escribe IV de 16 bytes al inicio del archivo cifrado.
@@ -360,6 +367,11 @@ bool encryptAES128(const std::string &inputPath, const std::string &outputPath, 
 	closeFile(outFd);
 	return true;
 }
+
+// Decrypt usando AES-128
+// Modo CBC con padding PKCS#7
+// La clave se ajusta a 16 bytes (truncando o repitiendo)
+// Formato esperado: [IV:16 bytes][Payload descifrado]
 bool decryptAES128(const std::string &inputPath, const std::string &outputPath, const std::string &key) {
 	// AES-128 CBC streaming decryption
 	if (key.empty()) {
