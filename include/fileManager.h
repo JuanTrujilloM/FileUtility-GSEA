@@ -25,4 +25,7 @@ std::vector<std::string> listFiles(const std::string &directoryPath);
 // Obtiene el tamaño de un archivo (en bytes). Retorna -1 si falla.
 long long getFileSize(const std::string &path);
 
+// Crea directorios recursivamente (como mkdir -p). Retorna true si existe o fue creado.
+bool ensureDirectoryExists(const std::string &path);
+
 #endif

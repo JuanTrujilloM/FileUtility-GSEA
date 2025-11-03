@@ -140,3 +140,11 @@ Usa puede usar el archivo `tests/Test1C.txt` para los casos combinados y cabe ac
 ```bash
 ./bin/FileUtility -ud -i tests/out.dat -o tests/recovered.txt --enc-alg AES128 --comp-alg LZW -k MiClave
 ```
+
+## Operaciones con Carpetas
+El programa también soporta operaciones en carpetas completas. Simplemente proporciona la ruta de la carpeta
+como argumento de entrada. El programa procesará todos los archivos dentro de la carpeta de manera recursiva, aplicando las operaciones especificadas a cada archivo individualmente.
+Por ejemplo, para comprimir y encriptar todos los archivos en una carpeta:
+```bash
+./bin/FileUtility -ce -i tests -o testsOut --comp-alg LZW --enc-alg AES128 -k MiClave
+```
