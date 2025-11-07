@@ -24,42 +24,42 @@ void processFile(const std::string& input_path, const std::string& output_path, 
             // compresión
             if (comp_algorithm == "RLE") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Compresión:RLE] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Compresión:RLE] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     compressRLE(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Compresión:RLE] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Compresión:RLE] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else if (comp_algorithm == "LZW") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Compresión:LZW] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Compresión:LZW] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     compressLZW(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Compresión:LZW] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Compresión:LZW] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else if (comp_algorithm == "Huff" || comp_algorithm == "Huffman") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Compresión:Huffman] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Compresión:Huffman] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     compressHuffman(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Compresión:Huffman] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Compresión:Huffman] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else {
                 std::cout << "Algoritmo de compresión no soportado: " << comp_algorithm << std::endl;
@@ -71,42 +71,42 @@ void processFile(const std::string& input_path, const std::string& output_path, 
             // descompresión
             if (comp_algorithm == "RLE") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Descompresión:RLE] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Descompresión:RLE] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decompressRLE(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Descompresión:RLE] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Descompresión:RLE] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else if (comp_algorithm == "LZW") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Descompresión:LZW] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Descompresión:LZW] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decompressLZW(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Descompresión:LZW] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Descompresión:LZW] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else if (comp_algorithm == "Huff" || comp_algorithm == "Huffman") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Descompresión:Huffman] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Descompresión:Huffman] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decompressHuffman(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Descompresión:Huffman] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Descompresión:Huffman] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else {
                 std::cout << "Algoritmo de descompresión no soportado: " << comp_algorithm << std::endl;
@@ -123,29 +123,29 @@ void processFile(const std::string& input_path, const std::string& output_path, 
             }
             if (enc_algorithm == "VIG" || enc_algorithm == "VIGENERE" || enc_algorithm == "Vigenere") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Encriptación:Vigenère] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Encriptación:Vigenère] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     encryptVigenere(current_input, target, key);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Encriptación:Vigenère] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Encriptación:Vigenère] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else if (enc_algorithm == "AES" || enc_algorithm == "AES128" || enc_algorithm == "AES-128") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Encriptación:AES-128] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Encriptación:AES-128] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     encryptAES128(current_input, target, key);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Encriptación:AES-128] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Encriptación:AES-128] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else {
                 std::cout << "Algoritmo de encriptación no soportado: " << enc_algorithm << std::endl;
@@ -161,29 +161,29 @@ void processFile(const std::string& input_path, const std::string& output_path, 
             }
             if (enc_algorithm == "VIG" || enc_algorithm == "VIGENERE" || enc_algorithm == "Vigenere") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Desencriptación:Vigenère] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Desencriptación:Vigenère] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decryptVigenere(current_input, target, key);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Desencriptación:Vigenère] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Desencriptación:Vigenère] Tamaño después: " << formatFileSize(after) << std::endl;
 
             } else if (enc_algorithm == "AES" || enc_algorithm == "AES128" || enc_algorithm == "AES-128") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Desencriptación:AES-128] Tamaño antes: " << before << " bytes" << std::endl;
+                std::cout << "[Desencriptación:AES-128] Tamaño antes: " << formatFileSize(before) << std::endl;
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decryptAES128(current_input, target, key);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << elapsed << " s" << std::endl;
+                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Desencriptación:AES-128] Tamaño después: " << after << " bytes" << std::endl;
+                std::cout << "[Desencriptación:AES-128] Tamaño después: " << formatFileSize(after) << std::endl;
                 
             } else {
                 std::cout << "Algoritmo de desencriptación no soportado: " << enc_algorithm << std::endl;
@@ -323,4 +323,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-

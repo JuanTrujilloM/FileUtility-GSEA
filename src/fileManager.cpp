@@ -130,3 +130,59 @@ bool ensureDirectoryExists(const std::string &path) {
 
     return true;
 }
+
+std::string formatFileSize(long long bytes) {
+    if (bytes < 0) return "N/A";
+    
+    const long long KB = 1024;
+    const long long MB = KB * 1024;
+    const long long GB = MB * 1024;
+    const long long TB = GB * 1024;
+    
+    char buffer[64];
+    
+    if (bytes >= TB) {
+        snprintf(buffer, sizeof(buffer), "%.2f TB", static_cast<double>(bytes) / TB);
+    } else if (bytes >= GB) {
+        snprintf(buffer, sizeof(buffer), "%.2f GB", static_cast<double>(bytes) / GB);
+    } else if (bytes >= MB) {
+        snprintf(buffer, sizeof(buffer), "%.2f MB", static_cast<double>(bytes) / MB);
+    } else if (bytes >= KB) {
+        snprintf(buffer, sizeof(buffer), "%.2f KB", static_cast<double>(bytes) / KB);
+    } else {
+        snprintf(buffer, sizeof(buffer), "%lld bytes", bytes);
+    }
+    
+    return std::string(buffer);
+}
+
+std::string formatTime(double seconds) {
+    char buffer[64];
+    
+    if (seconds >= 3600.0) {
+        // Horas
+        double hours = seconds / 3600.0;
+        snprintf(buffer, sizeof(buffer), "%.2f h", hours);
+    } else if (seconds >= 60.0) {
+        // Minutos
+        double minutes = seconds / 60.0;
+        snprintf(buffer, sizeof(buffer), "%.2f min", minutes);
+    } else if (seconds >= 1.0) {
+        // Segundos
+        snprintf(buffer, sizeof(buffer), "%.2f s", seconds);
+    } else if (seconds >= 0.001) {
+        // Milisegundos
+        double milliseconds = seconds * 1000.0;
+        snprintf(buffer, sizeof(buffer), "%.2f ms", milliseconds);
+    } else if (seconds >= 0.000001) {
+        // Microsegundos
+        double microseconds = seconds * 1000000.0;
+        snprintf(buffer, sizeof(buffer), "%.2f μs", microseconds);
+    } else {
+        // Nanosegundos
+        double nanoseconds = seconds * 1000000000.0;
+        snprintf(buffer, sizeof(buffer), "%.2f ns", nanoseconds);
+    }
+    
+    return std::string(buffer);
+}
