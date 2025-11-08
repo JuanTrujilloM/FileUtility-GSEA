@@ -6,245 +6,356 @@
 #include "compression.h"         // Para compresión
 #include "encryption.h"          // Para encriptación
 #include <chrono>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <functional>
+#include <atomic>
+#include <sstream>
+#include <unordered_map>
+#include <algorithm>
+
+static std::mutex cout_mutex;
+
+// Helper seguro para imprimir (concatena y bloquea)
+static void printLockedStream(const std::function<void(std::ostream&)> &fn) {
+    std::ostringstream oss;
+    fn(oss);
+    std::lock_guard<std::mutex> lk(cout_mutex);
+    std::cout << oss.str();
+}
+
+// Genera nombre temporal único por archivo/operación
+static std::string makeTempName(const std::string &output_path, size_t op_idx, const std::string &input_path) {
+    auto h = std::hash<std::string>{}(input_path);
+    return output_path + ".tmp." + std::to_string(op_idx) + "." + std::to_string(h);
+}
 
 void processFile(const std::string& input_path, const std::string& output_path, const std::vector<char>& operations, const std::string& comp_algorithm, const std::string& enc_algorithm, const std::string& key) {
     std::string current_input = input_path;  // El archivo individual
     std::vector<std::string> temp_files;
 
+    // Bufferizar toda la salida por archivo para que no se entremezcle entre hilos
+    std::ostringstream oss;
+    oss << "Procesando Archivo: " << current_input << "\n";
+
     for (size_t idx = 0; idx < operations.size(); ++idx) {
         char op = operations[idx];
         bool last = (idx == operations.size() - 1);
-        std::string target = last ? output_path : (output_path + ".tmp" + std::to_string(idx));
+        std::string target = last ? output_path : makeTempName(output_path, idx, input_path);
         if (!last) temp_files.push_back(target);
-
-        std::cout << "Procesando Archivo: " << current_input << std::endl;
 
         // Ejecutar operaciones según el tipo
         if (op == 'c') {
             // compresión
             if (comp_algorithm == "RLE") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Compresión:RLE] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Compresión:RLE] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     compressRLE(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Compresión:RLE] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Compresión:RLE] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else if (comp_algorithm == "LZW") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Compresión:LZW] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Compresión:LZW] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     compressLZW(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Compresión:LZW] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Compresión:LZW] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else if (comp_algorithm == "Huff" || comp_algorithm == "Huffman") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Compresión:Huffman] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Compresión:Huffman] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     compressHuffman(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Compresión:Huffman] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Compresión:Huffman] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else {
-                std::cout << "Algoritmo de compresión no soportado: " << comp_algorithm << std::endl;
-                // Limpiar archivos temporales
+                oss << "Algoritmo de compresión no soportado: " << comp_algorithm << "\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                oss << "\n";
+                printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
         } else if (op == 'd') {
             // descompresión
             if (comp_algorithm == "RLE") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Descompresión:RLE] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Descompresión:RLE] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decompressRLE(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Descompresión:RLE] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Descompresión:RLE] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else if (comp_algorithm == "LZW") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Descompresión:LZW] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Descompresión:LZW] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decompressLZW(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Descompresión:LZW] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Descompresión:LZW] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else if (comp_algorithm == "Huff" || comp_algorithm == "Huffman") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Descompresión:Huffman] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Descompresión:Huffman] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decompressHuffman(current_input, target);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Descompresión:Huffman] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Descompresión:Huffman] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else {
-                std::cout << "Algoritmo de descompresión no soportado: " << comp_algorithm << std::endl;
-                // Limpiar archivos temporales
+                oss << "Algoritmo de descompresión no soportado: " << comp_algorithm << "\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                oss << "\n";
+                printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
         } else if (op == 'e') {
             // encriptación
             if (key.empty()) {
-                std::cout << "Debe especificar la clave con -k" << std::endl;
+                oss << "Debe especificar la clave con -k\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                oss << "\n";
+                printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
             if (enc_algorithm == "VIG" || enc_algorithm == "VIGENERE" || enc_algorithm == "Vigenere") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Encriptación:Vigenère] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Encriptación:Vigenère] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     encryptVigenere(current_input, target, key);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Encriptación:Vigenère] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Encriptación:Vigenère] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else if (enc_algorithm == "AES" || enc_algorithm == "AES128" || enc_algorithm == "AES-128") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Encriptación:AES-128] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Encriptación:AES-128] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     encryptAES128(current_input, target, key);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Encriptación:AES-128] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Encriptación:AES-128] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else {
-                std::cout << "Algoritmo de encriptación no soportado: " << enc_algorithm << std::endl;
+                oss << "Algoritmo de encriptación no soportado: " << enc_algorithm << "\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                oss << "\n";
+                printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
         } else if (op == 'u') {
             // desencriptación
             if (key.empty()) {
-                std::cout << "Debe especificar la clave con -k" << std::endl;
+                oss << "Debe especificar la clave con -k\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                oss << "\n";
+                printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
             if (enc_algorithm == "VIG" || enc_algorithm == "VIGENERE" || enc_algorithm == "Vigenere") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Desencriptación:Vigenère] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Desencriptación:Vigenère] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decryptVigenere(current_input, target, key);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Desencriptación:Vigenère] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Desencriptación:Vigenère] Tamaño después: " << formatFileSize(after) << "\n";
 
             } else if (enc_algorithm == "AES" || enc_algorithm == "AES128" || enc_algorithm == "AES-128") {
                 long long before = getFileSize(current_input);
-                std::cout << "[Desencriptación:AES-128] Tamaño antes: " << formatFileSize(before) << std::endl;
+                oss << "[Desencriptación:AES-128] Tamaño antes: " << formatFileSize(before) << "\n";
                 {
                     auto t1 = std::chrono::steady_clock::now();
                     decryptAES128(current_input, target, key);
                     auto t2 = std::chrono::steady_clock::now();
                     double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-                    std::cout << "[Tiempo] " << formatTime(elapsed) << std::endl;
+                    oss << "[Tiempo] " << formatTime(elapsed) << "\n";
                 }
                 long long after = getFileSize(target);
-                std::cout << "[Desencriptación:AES-128] Tamaño después: " << formatFileSize(after) << std::endl;
+                oss << "[Desencriptación:AES-128] Tamaño después: " << formatFileSize(after) << "\n";
                 
             } else {
-                std::cout << "Algoritmo de desencriptación no soportado: " << enc_algorithm << std::endl;
+                oss << "Algoritmo de desencriptación no soportado: " << enc_algorithm << "\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                oss << "\n";
+                printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
         } else {
-            std::cout << "Operación desconocida: " << op << std::endl;
+            oss << "Operación desconocida: " << op << "\n";
             for (auto &f : temp_files) std::remove(f.c_str());
+            oss << "\n";
+            printLockedStream([&](std::ostream &os){ os << oss.str(); });
             return;
         }
 
         // Preparar input para la siguiente operación (si no es la última)
         if (!last) {
             current_input = target;
+            // opcional: anotar que se preparó siguiente etapa (no requerido en salida final)
         }
     }
 
     // Limpiar temporales intermedios
     for (auto &f : temp_files) {
         if (std::remove(f.c_str()) != 0) {
-            // No hacemos nada; es sólo intento de limpieza
+            // intento de limpieza; ignorar errores
         }
     }
-    // Añadir una línea en blanco para separar la salida entre archivos procesados
-    std::cout << std::endl;
+    // Añadir separación y volcar buffer de salida de una sola vez (mantiene orden por archivo)
+    oss << "\n";
+    printLockedStream([&](std::ostream &os){ os << oss.str(); });
 }
 
-void processFileOrDirectory(const std::string& input_path, const std::string& output_path, const std::vector<char>& operations, const std::string& comp_algorithm, const std::string& enc_algorithm, const std::string& key) {
-    if (isDirectory(input_path)) {
-        // Procesar cada archivo en el directorio
-        // Asegurarse de que el directorio de salida exista
-        ensureDirectoryExists(output_path);
-
-        std::vector<std::string> files = listFiles(input_path);
-
-        for (const auto& file : files) {
-            std::string input_file = input_path + "/" + file;
-            std::string output_file = output_path + "/" + file; // ajustar según sea necesario
-
-            if (isDirectory(input_file)) {
-                // Si es subdirectorio, crear el subdirectorio en la salida y llamar recursivamente
-                ensureDirectoryExists(output_file);
-                processFileOrDirectory(input_file, output_file, operations, comp_algorithm, enc_algorithm, key);
-            } else {
-                processFile(input_file, output_file, operations, comp_algorithm, enc_algorithm, key);
-            }
+// Recolecta pares (input_file, output_file) recursivamente manteniendo estructura
+static void collectFilesRecursively(const std::string &in_path, const std::string &out_path, std::vector<std::pair<std::string,std::string>> &acc) {
+    if (isDirectory(in_path)) {
+        ensureDirectoryExists(out_path);
+        std::vector<std::string> files = listFiles(in_path);
+        for (const auto &entry : files) {
+            std::string sub_in = in_path + "/" + entry;
+            std::string sub_out = out_path + "/" + entry;
+            collectFilesRecursively(sub_in, sub_out, acc);
         }
     } else {
-        // Si es un archivo individual, procesarlo de la misma manera
-        // Asegurar que exista el directorio padre del archivo de salida
-        std::string out_parent = output_path;
+        // asegurar directorio padre existe
+        std::string out_parent = out_path;
         while (out_parent.size() > 1 && out_parent.back() == '/') out_parent.pop_back();
         size_t pos = out_parent.find_last_of('/');
         if (pos == std::string::npos) out_parent = ".";
         else if (pos == 0) out_parent = "/";
         else out_parent = out_parent.substr(0, pos);
         ensureDirectoryExists(out_parent);
+        acc.emplace_back(in_path, out_path);
+    }
+}
 
-        processFile(input_path, output_path, operations, comp_algorithm, enc_algorithm, key);
-    }   
+// Ejecuta los trabajos con un thread-pool simple (max = hardware_concurrency())
+static void runThreadPool(const std::vector<std::pair<std::string,std::string>> &tasks,
+                          const std::vector<char>& operations,
+                          const std::string &comp_algorithm,
+                          const std::string &enc_algorithm,
+                          const std::string &key) {
+    size_t hw = std::thread::hardware_concurrency();
+    size_t numThreads = hw == 0 ? 4 : hw;
+
+    // Mensaje inicial con concurrencia y número de hilos (usando mutex)
+    printLockedStream([&](std::ostream &os){
+        os << "inicio de proceso con concurrencia: " << numThreads << " hilos\n\n";
+    });
+
+    std::queue<std::function<void()>> q;
+    std::mutex qmutex;
+    std::condition_variable qcv;
+    std::atomic<bool> done(false);
+
+    // cargar tareas
+    {
+        std::lock_guard<std::mutex> lk(qmutex);
+        for (const auto &p : tasks) {
+            q.push([p, &operations, &comp_algorithm, &enc_algorithm, &key]() {
+                processFile(p.first, p.second, operations, comp_algorithm, enc_algorithm, key);
+            });
+        }
+    }
+
+    // workers
+    std::vector<std::thread> workers;
+    for (size_t i = 0; i < numThreads; ++i) {
+        workers.emplace_back([&](){
+            while (true) {
+                std::function<void()> task;
+                {
+                    std::unique_lock<std::mutex> lk(qmutex);
+                    qcv.wait(lk, [&]{ return !q.empty() || done.load(); });
+                    if (q.empty()) {
+                        if (done.load()) return;
+                        else continue;
+                    }
+                    task = std::move(q.front());
+                    q.pop();
+                }
+                try {
+                    task();
+                } catch (...) {
+                    printLockedStream([&](std::ostream &os){ os << "Error: excepción en worker\n"; });
+                }
+            }
+        });
+    }
+
+    // notificar workers y esperar a que la cola se vacíe
+    while (true) {
+        {
+            std::lock_guard<std::mutex> lk(qmutex);
+            if (q.empty()) break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    // terminar
+    done.store(true);
+    qcv.notify_all();
+    for (auto &t : workers) if (t.joinable()) t.join();
+}
+
+void processFileOrDirectory(const std::string& input_path, const std::string& output_path, const std::vector<char>& operations, const std::string& comp_algorithm, const std::string& enc_algorithm, const std::string& key) {
+    // Recolectar todos los archivos (manteniendo estructura) y procesarlos en paralelo
+    std::vector<std::pair<std::string,std::string>> tasks;
+    collectFilesRecursively(input_path, output_path, tasks);
+
+    if (tasks.empty()) {
+        printLockedStream([&](std::ostream &os){ os << "No se encontraron archivos para procesar en: " << input_path << std::endl; });
+        return;
+    }
+
+    runThreadPool(tasks, operations, comp_algorithm, enc_algorithm, key);
 }
 
 // Función principal que maneja la lógica de operaciones y procesamiento de archivos
