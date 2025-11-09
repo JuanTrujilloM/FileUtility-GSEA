@@ -9,40 +9,22 @@
 #include <vector>
 #include <atomic>
 
-/**
- * @brief Thread pool para ejecutar tareas en paralelo
- * 
- * Gestiona un conjunto de hilos worker que procesan tareas de una cola.
- * Número de hilos = hardware_concurrency() del sistema.
- */
+// Clase para un pool de hilos que ejecuta tareas en paralelo
 class ThreadPool {
 public:
-    /**
-     * @brief Constructor que inicializa el thread pool
-     * @param numThreads Número de hilos (por defecto: hardware_concurrency)
-     */
+    // Constructor que inicia el pool con numThreads hilos
     explicit ThreadPool(size_t numThreads = 0);
 
-    /**
-     * @brief Destructor que espera a que terminen todas las tareas
-     */
+    // Destructor que detiene el pool y une los hilos
     ~ThreadPool();
 
-    /**
-     * @brief Añade una tarea a la cola para ser ejecutada
-     * @param task Función a ejecutar
-     */
+    // Encola una nueva tarea en el pool
     void enqueue(std::function<void()> task);
 
-    /**
-     * @brief Espera a que todas las tareas pendientes terminen
-     */
+    // Espera a que todas las tareas encoladas se completen
     void waitForCompletion();
 
-    /**
-     * @brief Obtiene el número de hilos del pool
-     * @return Número de hilos worker
-     */
+    // Obtiene el número de hilos en el pool
     size_t getThreadCount() const { return workers.size(); }
 
     // Deshabilitar copia y asignación
@@ -57,9 +39,7 @@ private:
     std::atomic<bool> stop;                     // Flag para detener el pool
     std::atomic<size_t> activeTasks;            // Contador de tareas activas
 
-    /**
-     * @brief Función que ejecuta cada worker
-     */
+    // Hilo worker que procesa tareas de la cola
     void workerThread();
 };
 

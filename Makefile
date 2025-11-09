@@ -24,3 +24,4 @@ clean:
 
 # Limpiar y recompilar
 rebuild: clean all
+	./bin/FileUtility -c -i tests_copy/ -o testsOut/ --comp-alg RLE
