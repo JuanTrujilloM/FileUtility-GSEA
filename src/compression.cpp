@@ -23,31 +23,57 @@ void compressRLE(const std::string &inputPath, const std::string &outputPath) {
         return;
     }
 
-    // Lógica de compresión RLE con formato binario
-    char currentChar;
+    // Buffers optimizados para I/O por bloques
+    constexpr size_t INPUT_BUF_SIZE = 65536;  // 64KB buffer de entrada
+    constexpr size_t OUTPUT_BUF_SIZE = 65536; // 64KB buffer de salida
+    std::vector<char> inputBuffer(INPUT_BUF_SIZE);
+    std::vector<char> outputBuffer;
+    outputBuffer.reserve(OUTPUT_BUF_SIZE);
+
     char previousChar = '\0';
     int count = 0;
     bool first = true;
+    ssize_t bytesRead;
 
-    while (readFile(inputFd, &currentChar, 1) == 1) {
-        if (!first && currentChar == previousChar) {
-            count++;
-        } else {
-            if (!first) {
-                // Escribir count (4 bytes) + carácter (1 byte)
-                writeFile(outputFd, &count, sizeof(int));
-                writeFile(outputFd, &previousChar, 1);
+    // Procesar archivo por bloques
+    while ((bytesRead = readFile(inputFd, inputBuffer.data(), INPUT_BUF_SIZE)) > 0) {
+        for (ssize_t i = 0; i < bytesRead; ++i) {
+            char currentChar = inputBuffer[i];
+            
+            if (!first && currentChar == previousChar) {
+                count++;
+            } else {
+                if (!first) {
+                    // Escribir count (4 bytes) + carácter (1 byte) al buffer
+                    outputBuffer.insert(outputBuffer.end(), 
+                                      reinterpret_cast<char*>(&count),
+                                      reinterpret_cast<char*>(&count) + sizeof(int));
+                    outputBuffer.push_back(previousChar);
+                    
+                    // Flush buffer si está cerca del límite
+                    if (outputBuffer.size() >= OUTPUT_BUF_SIZE - 5) {
+                        writeFile(outputFd, outputBuffer.data(), outputBuffer.size());
+                        outputBuffer.clear();
+                    }
+                }
+                previousChar = currentChar;
+                count = 1;
+                first = false;
             }
-            previousChar = currentChar;
-            count = 1;
-            first = false;
         }
     }
 
     // Escribir el último par count+char
     if (!first) {
-        writeFile(outputFd, &count, sizeof(int));
-        writeFile(outputFd, &previousChar, 1);
+        outputBuffer.insert(outputBuffer.end(), 
+                          reinterpret_cast<char*>(&count),
+                          reinterpret_cast<char*>(&count) + sizeof(int));
+        outputBuffer.push_back(previousChar);
+    }
+
+    // Flush buffer final
+    if (!outputBuffer.empty()) {
+        writeFile(outputFd, outputBuffer.data(), outputBuffer.size());
     }
 
     closeFile(inputFd);
@@ -68,18 +94,33 @@ void decompressRLE(const std::string &inputPath, const std::string &outputPath) 
         return;
     }
 
-    // Lógica de descompresión RLE con formato binario
+    // Buffer optimizado para escritura
+    constexpr size_t OUTPUT_BUF_SIZE = 65536; // 64KB buffer
+    std::vector<char> outputBuffer;
+    outputBuffer.reserve(OUTPUT_BUF_SIZE);
+
     int count;
     char ch;
     
     // Leer pares de [count][char] hasta el final del archivo
     while (readFile(inputFd, &count, sizeof(int)) == sizeof(int)) {
         if (readFile(inputFd, &ch, 1) == 1) {
-            // Escribir el carácter 'count' veces
+            // Escribir el carácter 'count' veces al buffer
             for (int j = 0; j < count; j++) {
-                writeFile(outputFd, &ch, 1);
+                outputBuffer.push_back(ch);
+                
+                // Flush buffer si está lleno
+                if (outputBuffer.size() >= OUTPUT_BUF_SIZE) {
+                    writeFile(outputFd, outputBuffer.data(), outputBuffer.size());
+                    outputBuffer.clear();
+                }
             }
         }
+    }
+
+    // Flush buffer final
+    if (!outputBuffer.empty()) {
+        writeFile(outputFd, outputBuffer.data(), outputBuffer.size());
     }
 
     closeFile(inputFd);
@@ -100,49 +141,58 @@ void compressLZW(const std::string &inputPath, const std::string &outputPath) {
         return;
     }
 
-    // Logica de compresión LZW
+    // Diccionario optimizado con reserva de capacidad
     std::unordered_map<std::string, int> dictionary;
+    dictionary.reserve(4096); // Pre-reservar espacio
     for (int i = 0; i < 256; i++) {
-        dictionary[std::string(1, i)] = i;    
+        dictionary[std::string(1, static_cast<char>(i))] = i;    
     }
 
     std::string w;
-    char c;
+    w.reserve(256); // Pre-reservar para reducir reasignaciones
     int nextCode = 256;
-    std::vector<int> outputCodes;
+    std::vector<uint16_t> outputCodes;
+    outputCodes.reserve(8192); // Pre-reservar espacio
 
-    // Construir códigos
-    while (readFile(inputFd, &c, 1) == 1) {
-        std::string wc = w + c;
-        if (dictionary.count(wc)) {
-            w = wc;
-        } else {
-            // Emitir código de w (w siempre debe existir en el diccionario cuando no es vacío)
-            if (!w.empty()) {
-                outputCodes.push_back(dictionary[w]);
+    // Buffer de lectura optimizado
+    constexpr size_t INPUT_BUF_SIZE = 65536; // 64KB
+    std::vector<char> inputBuffer(INPUT_BUF_SIZE);
+    ssize_t bytesRead;
+
+    // Procesar archivo por bloques
+    while ((bytesRead = readFile(inputFd, inputBuffer.data(), INPUT_BUF_SIZE)) > 0) {
+        for (ssize_t i = 0; i < bytesRead; ++i) {
+            char c = inputBuffer[i];
+            std::string wc = w + c;
+            
+            if (dictionary.count(wc)) {
+                w = std::move(wc);
+            } else {
+                // Emitir código de w
+                if (!w.empty()) {
+                    outputCodes.push_back(static_cast<uint16_t>(dictionary[w]));
+                }
+                // Añadir nueva entrada si no se alcanzó el límite de 16 bits
+                if (nextCode <= 0xFFFF) {
+                    dictionary[wc] = nextCode++;
+                }
+                w = std::string(1, c);
             }
-            // Añadir nueva entrada si no se alcanzó el límite de 16 bits
-            if (nextCode <= 0xFFFF) {
-                dictionary[wc] = nextCode++;
-            }
-            w = std::string(1, c);
         }
     }
+    
+    // Emitir último código
     if (!w.empty()) {
-        outputCodes.push_back(dictionary[w]);
+        outputCodes.push_back(static_cast<uint16_t>(dictionary[w]));
     }
 
-    // Guardar códigos como binarios (2 bytes por código) en endianness nativo
-    for (int code : outputCodes) {
-        if (code < 0 || code > 0xFFFF) continue; // seguridad
-        uint16_t value = static_cast<uint16_t>(code);
-        ssize_t written = writeFile(outputFd, &value, sizeof(value));
-        (void)written; // opcional: podríamos manejar errores aquí
+    // Escribir códigos en bloques para mejor rendimiento
+    if (!outputCodes.empty()) {
+        writeFile(outputFd, outputCodes.data(), outputCodes.size() * sizeof(uint16_t));
     }
 
     close(inputFd);
     close(outputFd);
-    
 }
 
 // Descompress usando Lempel-Ziv-Welch LZW
@@ -158,7 +208,7 @@ void decompressLZW(const std::string &inputPath, const std::string &outputPath) 
         return;
     }
 
-    // Inicializar diccionario con 0..255
+    // Inicializar diccionario con 0..255 y pre-reservar
     std::vector<std::string> dictionary;
     dictionary.reserve(65536);
     for (int i = 0; i < 256; ++i) {
@@ -166,62 +216,75 @@ void decompressLZW(const std::string &inputPath, const std::string &outputPath) 
     }
     int nextCode = 256;
 
-    // Leer el primer código 
-    uint16_t code;
-    ssize_t r = readFile(inputFd, &code, sizeof(code));
-    if (r != sizeof(code)) {
-        // Archivo vacio o lectura fallida
-        closeFile(inputFd);
-        closeFile(outputFd);
-        return;
-    }
-    if (code > 0xFFFF) {
-        // código inválido
-        closeFile(inputFd);
-        closeFile(outputFd);
-        return;
-    }
+    // Buffer de salida optimizado
+    constexpr size_t OUTPUT_BUF_SIZE = 65536; // 64KB
+    std::vector<char> outputBuffer;
+    outputBuffer.reserve(OUTPUT_BUF_SIZE);
 
-    std::string w;
-    if (code < dictionary.size()) {
-        w = dictionary[code];
-        // escribir w al archivo de salida
-        if (!w.empty()) writeFile(outputFd, w.data(), w.size());
-    } else {
-        // código desconocido en inicio -> nada que hacer
+    // Leer códigos en bloques para mejor rendimiento
+    constexpr size_t CODE_BUF_SIZE = 8192; // Leer 8K códigos a la vez
+    std::vector<uint16_t> codeBuffer(CODE_BUF_SIZE);
+    
+    // Leer el primer código
+    if (readFile(inputFd, &codeBuffer[0], sizeof(uint16_t)) != sizeof(uint16_t)) {
         closeFile(inputFd);
         closeFile(outputFd);
         return;
     }
 
-    // Procesar códigos restantes
-    uint16_t k;
-    while (readFile(inputFd, &k, sizeof(k)) == sizeof(k)) {
-        std::string entry;
+    uint16_t code = codeBuffer[0];
+    if (code >= dictionary.size()) {
+        closeFile(inputFd);
+        closeFile(outputFd);
+        return;
+    }
 
-        if (k < dictionary.size()) {
-            entry = dictionary[k];
-        } else if (k == nextCode) {
-            // Caso especial: entry = w + first char of w
-            if (!w.empty()) entry = w + w[0];
-            else entry = std::string();
-        } else {
-            // Código inválido: abortar lectura
-            break;
+    std::string w = dictionary[code];
+    // Escribir w al buffer
+    outputBuffer.insert(outputBuffer.end(), w.begin(), w.end());
+
+    // Procesar códigos restantes por bloques
+    ssize_t bytesRead;
+    while ((bytesRead = readFile(inputFd, codeBuffer.data(), CODE_BUF_SIZE * sizeof(uint16_t))) > 0) {
+        size_t codesRead = bytesRead / sizeof(uint16_t);
+        
+        for (size_t i = 0; i < codesRead; ++i) {
+            uint16_t k = codeBuffer[i];
+            std::string entry;
+
+            if (k < dictionary.size()) {
+                entry = dictionary[k];
+            } else if (k == nextCode) {
+                // Caso especial: entry = w + first char of w
+                if (!w.empty()) entry = w + w[0];
+                else entry = std::string();
+            } else {
+                // Código inválido: abortar lectura
+                break;
+            }
+
+            // Escribir entry al buffer
+            outputBuffer.insert(outputBuffer.end(), entry.begin(), entry.end());
+            
+            // Flush si el buffer está cerca del límite
+            if (outputBuffer.size() >= OUTPUT_BUF_SIZE - 256) {
+                writeFile(outputFd, outputBuffer.data(), outputBuffer.size());
+                outputBuffer.clear();
+            }
+
+            // Agregar nueva entrada al diccionario
+            if (nextCode <= 0xFFFF && !entry.empty()) {
+                dictionary.push_back(w + entry[0]);
+                ++nextCode;
+            }
+
+            w = std::move(entry);
         }
+    }
 
-        // Escribir entry
-        if (!entry.empty()) writeFile(outputFd, entry.data(), entry.size());
-
-        // Agregar nueva entrada al diccionario: w + entry[0]
-        if (nextCode <= 0xFFFF && !entry.empty()) {
-            std::string newEntry = w + entry[0];
-            dictionary.push_back(newEntry);
-            ++nextCode;
-        }
-
-        // Avanzar
-        w = entry;
+    // Flush buffer final
+    if (!outputBuffer.empty()) {
+        writeFile(outputFd, outputBuffer.data(), outputBuffer.size());
     }
 
     closeFile(inputFd);
@@ -274,11 +337,19 @@ void compressHuffman(const std::string &inputPath, const std::string &outputPath
     int outputFd = openFile(outputPath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (outputFd == -1) { closeFile(inputFd); return; }
 
-    // Leer todo el archivo
+    // Leer archivo con buffer optimizado
     std::vector<unsigned char> data;
-    const size_t BUF_SZ = 4096;
+    constexpr size_t BUF_SZ = 65536; // 64KB buffer
     std::vector<char> buf(BUF_SZ);
     ssize_t r;
+    
+    // Pre-estimar tamaño para reducir reasignaciones
+    off_t fileSize = lseek(inputFd, 0, SEEK_END);
+    if (fileSize > 0) {
+        lseek(inputFd, 0, SEEK_SET);
+        data.reserve(fileSize);
+    }
+    
     while ((r = readFile(inputFd, buf.data(), BUF_SZ)) > 0) {
         data.insert(data.end(), buf.data(), buf.data() + r);
     }
@@ -295,7 +366,7 @@ void compressHuffman(const std::string &inputPath, const std::string &outputPath
         return;
     }
 
-    // frecuencia
+    // Calcular frecuencias
     std::array<uint64_t,256> freq{};
     for (unsigned char c : data) freq[c]++;
 
@@ -309,7 +380,6 @@ void compressHuffman(const std::string &inputPath, const std::string &outputPath
 
     // construir árbol
     if (pq.empty()) {
-        // no hay datos (ya manejado), pero por seguridad
         closeFile(inputFd);
         closeFile(outputFd);
         return;
@@ -327,8 +397,7 @@ void compressHuffman(const std::string &inputPath, const std::string &outputPath
     for (auto &s : codes) s.clear();
     buildCodes(root, "", codes);
 
-    // Escribir cabecera: tamaño original (uint64_t), número de símbolos (uint16_t),
-    // luego para cada símbolo: uint8_t ch + uint64_t freq
+    // Escribir cabecera
     uint64_t origSizeLE = origSize;
     uint16_t uniqueSymbols = 0;
     for (int i = 0; i < 256; ++i) if (freq[i] > 0) ++uniqueSymbols;
@@ -344,26 +413,41 @@ void compressHuffman(const std::string &inputPath, const std::string &outputPath
         }
     }
 
-    // Escribir el bitstream codificado (empaquetado en bytes)
+    // Optimización: Escribir bitstream usando buffer
+    std::vector<unsigned char> bitBuffer;
+    bitBuffer.reserve(data.size() / 2); // Estimación conservadora
+    
     unsigned char outByte = 0;
     int bitCount = 0;
+    
     for (unsigned char c : data) {
         const std::string &code = codes[c];
         for (char bit : code) {
-            outByte <<= 1;
-            if (bit == '1') outByte |= 1;
+            outByte = (outByte << 1) | (bit == '1' ? 1 : 0);
             ++bitCount;
             if (bitCount == 8) {
-                writeFile(outputFd, &outByte, 1);
+                bitBuffer.push_back(outByte);
                 outByte = 0;
                 bitCount = 0;
+                
+                // Flush buffer periódicamente
+                if (bitBuffer.size() >= BUF_SZ) {
+                    writeFile(outputFd, bitBuffer.data(), bitBuffer.size());
+                    bitBuffer.clear();
+                }
             }
         }
     }
+    
     // padding: rellenar con ceros a la derecha en el último byte si es necesario
     if (bitCount > 0) {
         outByte <<= (8 - bitCount);
-        writeFile(outputFd, &outByte, 1);
+        bitBuffer.push_back(outByte);
+    }
+    
+    // Flush final
+    if (!bitBuffer.empty()) {
+        writeFile(outputFd, bitBuffer.data(), bitBuffer.size());
     }
 
     freeTree(root);
@@ -393,7 +477,6 @@ void decompressHuffman(const std::string &inputPath, const std::string &outputPa
         return;
     }
     if (origSize == 0 || uniqueSymbols == 0) {
-        // archivo vacío -> nada que escribir
         closeFile(inputFd);
         closeFile(outputFd);
         return;
@@ -427,28 +510,45 @@ void decompressHuffman(const std::string &inputPath, const std::string &outputPa
     }
     HuffNode* root = pq.top();
 
-    // Decodificar bit a bit
+    // Buffer optimizado para decodificación y escritura
+    constexpr size_t INPUT_BUF_SZ = 65536;  // 64KB input buffer
+    constexpr size_t OUTPUT_BUF_SZ = 65536; // 64KB output buffer
+    std::vector<unsigned char> inbuf(INPUT_BUF_SZ);
+    std::vector<unsigned char> outbuf;
+    outbuf.reserve(OUTPUT_BUF_SZ);
+
+    // Decodificar bit a bit con buffer
     HuffNode* node = root;
     uint64_t written = 0;
-    const size_t BUF_SZ = 4096;
-    std::vector<unsigned char> inbuf(BUF_SZ);
     ssize_t rr;
-    // leer el resto del archivo por bloques
-    while ((rr = readFile(inputFd, reinterpret_cast<char*>(inbuf.data()), BUF_SZ)) > 0 && written < origSize) {
+    
+    while ((rr = readFile(inputFd, inbuf.data(), INPUT_BUF_SZ)) > 0 && written < origSize) {
         for (ssize_t i = 0; i < rr && written < origSize; ++i) {
             unsigned char b = inbuf[i];
-            // procesar 8 bits, de msb a lsb (coincide con cómo escribimos)
+            // procesar 8 bits, de msb a lsb
             for (int bit = 7; bit >= 0 && written < origSize; --bit) {
                 int v = (b >> bit) & 1;
                 node = (v == 0) ? node->left : node->right;
+                
                 if (!node->left && !node->right) {
-                    unsigned char outc = node->ch;
-                    writeFile(outputFd, &outc, 1);
+                    // Nodo hoja encontrado
+                    outbuf.push_back(node->ch);
                     ++written;
                     node = root;
+                    
+                    // Flush buffer cuando esté lleno
+                    if (outbuf.size() >= OUTPUT_BUF_SZ) {
+                        writeFile(outputFd, outbuf.data(), outbuf.size());
+                        outbuf.clear();
+                    }
                 }
             }
         }
+    }
+
+    // Flush buffer final
+    if (!outbuf.empty()) {
+        writeFile(outputFd, outbuf.data(), outbuf.size());
     }
 
     freeTree(root);
