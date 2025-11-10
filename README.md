@@ -47,12 +47,12 @@ El ejecutable se generará en `bin/FileUtility`.
 
 ### 2. Encriptar un archivo:
 ```bash
-./bin/FileUtility -e -i archivo.txt -o archivo_encriptado.dat --enc-alg <algoritmo> -k miClave123
+./bin/FileUtility -e -i archivo.txt -o archivo_encriptado.dat --enc-alg <algoritmo> -k "Encrypt3*PassK3y@"
 ```
 
 ### 3. Comprimir y encriptar:
 ```bash
-./bin/FileUtility -ce -i archivo.txt -o archivo_protegido.dat --comp-alg <algoritmo> --enc-alg <algoritmo> -k miClave123
+./bin/FileUtility -ce -i archivo.txt -o archivo_protegido.dat --comp-alg <algoritmo> --enc-alg <algoritmo> -k "Encrypt3*PassK3y@"
 ```
 
 ### 4. Descomprimir un archivo:
@@ -62,12 +62,12 @@ El ejecutable se generará en `bin/FileUtility`.
 
 ### 5. Desencriptar un archivo:
 ```bash
-./bin/FileUtility -u -i archivo_encriptado.dat -o archivo_desencriptado.txt --enc-alg <algoritmo> -k miClave123
+./bin/FileUtility -u -i archivo_encriptado.dat -o archivo_desencriptado.txt --enc-alg <algoritmo> -k "Encrypt3*PassK3y@"
 ```
 
 ### 6. Desencriptar y descomprimir:
 ```bash
-./bin/FileUtility -ud -i archivo_protegido.dat -o archivo_original.txt --comp-alg <algoritmo> --enc-alg <algoritmo> -k miClave123
+./bin/FileUtility -ud -i archivo_protegido.dat -o archivo_original.txt --comp-alg <algoritmo> --enc-alg <algoritmo> -k "Encrypt3*PassK3y@"
 ```
 
 ## Casos Actuales
@@ -110,22 +110,22 @@ Usa el archivo `tests/Test1E.txt` para los casos de encriptación y desencriptac
 
 - Encriptación: Vigenere
 ```bash
-./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEnc.dat --enc-alg VIG -k MiClave
+./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEnc.dat --enc-alg VIG -k "Encrypt3*PassK3y@"
 ```
 
 - Desencriptación: Vigenere
 ```bash
-./bin/FileUtility -u -i tests/TestEnc.dat -o tests/TestDec.txt --enc-alg VIG -k MiClave
+./bin/FileUtility -u -i tests/TestEnc.dat -o tests/TestDec.txt --enc-alg VIG -k Encrypt3*PassK3y@
 ```
 
 - Encriptación: AES-128 (CBC)
 ```bash
-./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEncAES.dat --enc-alg AES -k MiClave
+./bin/FileUtility -e -i tests/Test1E.txt -o tests/TestEncAES.dat --enc-alg AES -k Encrypt3*PassK3y@
 ```
 
 - Desencriptación: AES-128 (CBC)
 ```bash
-./bin/FileUtility -u -i tests/TestEncAES.dat -o tests/TestDecAES.txt --enc-alg AES -k MiClave
+./bin/FileUtility -u -i tests/TestEncAES.dat -o tests/TestDecAES.txt --enc-alg AES -k Encrypt3*PassK3y@
 ```
 
 ### Operaciones combinadas
@@ -133,12 +133,12 @@ Usa puede usar el archivo `tests/Test1C.txt` para los casos combinados y cabe ac
 
 - Comprimir y encriptar:
 ```bash
-./bin/FileUtility -ce -i tests/Test1C.txt -o tests/out.dat --comp-alg LZW --enc-alg AES128 -k MiClave
+./bin/FileUtility -ce -i tests/Test1C.txt -o tests/out.dat --comp-alg LZW --enc-alg AES128 -k Encrypt3*PassK3y@
 ```
 
 - Desencriptar y descomprimir:
 ```bash
-./bin/FileUtility -ud -i tests/out.dat -o tests/recovered.txt --enc-alg AES128 --comp-alg LZW -k MiClave
+./bin/FileUtility -ud -i tests/out.dat -o tests/recovered.txt --enc-alg AES128 --comp-alg LZW -k Encrypt3*PassK3y@
 ```
 
 ## Operaciones con Carpetas
@@ -146,5 +146,5 @@ El programa también soporta operaciones en carpetas completas. Simplemente prop
 como argumento de entrada. El programa procesará todos los archivos dentro de la carpeta de manera recursiva, aplicando las operaciones especificadas a cada archivo individualmente.
 Por ejemplo, para comprimir y encriptar todos los archivos en una carpeta:
 ```bash
-./bin/FileUtility -ce -i tests -o testsOut --comp-alg LZW --enc-alg AES128 -k MiClave
+./bin/FileUtility -ce -i tests -o testsOut --comp-alg LZW --enc-alg AES128 -k Encrypt3*PassK3y@
 ```

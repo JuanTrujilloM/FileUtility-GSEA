@@ -337,6 +337,72 @@ void processFileOrDirectory(const std::string& input_path, const std::string& ou
     runThreadPool(tasks, operations, comp_algorithm, enc_algorithm, key);
 }
 
+// Función para validar la clave de encriptación
+bool validateSecureKey(const std::string& key, const std::string& enc_algorithm) {
+    // Determinar longitud mínima según el algoritmo
+    size_t minLength = 8;
+    if (enc_algorithm == "AES" || enc_algorithm == "AES128" || enc_algorithm == "AES-128") {
+        minLength = 16; // AES-128 requiere clave de 16 bytes (128 bits)
+    }
+    
+    // Verificar longitud mínima
+    if (key.length() < minLength) {
+        std::cout << "⚠️  ADVERTENCIA: La clave es muy corta. ";
+        std::cout << "Se requieren al menos " << minLength << " caracteres para " << enc_algorithm << ".\n";
+        std::cout << "Longitud actual: " << key.length() << " caracteres.\n";
+        return false;
+    }
+    
+    // Verificar complejidad de la clave
+    bool hasUpper = false;
+    bool hasLower = false;
+    bool hasDigit = false;
+    bool hasSpecial = false;
+    
+    for (char c : key) {
+        if (std::isupper(c)) hasUpper = true;
+        else if (std::islower(c)) hasLower = true;
+        else if (std::isdigit(c)) hasDigit = true;
+        else if (std::ispunct(c) || std::isspace(c)) hasSpecial = true;
+    }
+    
+    int complexity = hasUpper + hasLower + hasDigit + hasSpecial;
+    
+    if (complexity < 3) {
+        std::cout << "⚠️  ADVERTENCIA: La clave es débil. Se recomienda usar:\n";
+        if (!hasUpper) std::cout << "  - Al menos una letra MAYÚSCULA\n";
+        if (!hasLower) std::cout << "  - Al menos una letra minúscula\n";
+        if (!hasDigit) std::cout << "  - Al menos un número\n";
+        if (!hasSpecial) std::cout << "  - Al menos un carácter especial (!@#$%^&*)\n";
+        std::cout << "¿Desea continuar de todas formas? (s/n): ";
+        
+        std::string response;
+        std::getline(std::cin, response);
+        if (response != "s" && response != "S" && response != "si" && response != "Si" && response != "SI") {
+            return false;
+        }
+    }
+    
+    // Verificar que no sea una clave común
+    std::vector<std::string> commonKeys = {
+        "password", "12345678", "abc12345", "password123",
+        "admin123"
+    };
+    
+    std::string lowerKey = key;
+    std::transform(lowerKey.begin(), lowerKey.end(), lowerKey.begin(), ::tolower);
+    
+    for (const auto& common : commonKeys) {
+        if (lowerKey.find(common) != std::string::npos) {
+            std::cout << "⚠️  ADVERTENCIA: La clave contiene patrones comunes y es insegura.\n";
+            std::cout << "Por favor, use una clave más compleja y única.\n";
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 // Función principal
 int main(int argc, char* argv[]) {
     // Verificar argumentos mínimos
@@ -401,6 +467,30 @@ int main(int argc, char* argv[]) {
     if (ops.empty()) {
         std::cout << "No se especificaron operaciones (por ejemplo -ce)." << std::endl;
         return 1;
+    }
+
+    // Validar clave si hay operaciones de encriptación/desencriptación
+    bool needsKey = false;
+    for (char op : ops) {
+        if (op == 'e') {
+            needsKey = true;
+            break;
+        }
+    }
+    
+    if (needsKey) {
+        if (key.empty()) {
+            std::cout << "Error: Se requiere una clave (-k) para operaciones de encriptación/desencriptación.\n";
+            return 1;
+        }
+        
+        // Validar que la clave sea segura
+        if (!validateSecureKey(key, enc_algorithm)) {
+            std::cout << "Error: La clave no cumple con los requisitos de seguridad.\n";
+            return 1;
+        }
+        
+        std::cout << "✓ Clave validada correctamente.\n\n";
     }
 
     // Procesar archivo o directorio completo con concurrencia
