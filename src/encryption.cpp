@@ -508,7 +508,7 @@ bool decryptAES128(const std::string &inputPath, const std::string &outputPath, 
 	uint8_t prevCipher[16];
 	for (int i=0;i<16;++i) prevCipher[i] = iv[i];
 
-	const size_t READBUF = 4096;
+	const size_t READBUF = 4096; // 4KB
 	char cbuf[READBUF];
 	std::vector<uint8_t> cbuffer;
 	cbuffer.reserve(READBUF + 16);

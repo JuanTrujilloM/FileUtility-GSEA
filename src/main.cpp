@@ -249,20 +249,35 @@ static void runThreadPool(const std::vector<std::pair<std::string,std::string>> 
     // Determinar el encabezado apropiado según las operaciones
     std::string sizeHeader = "Procesado";
     if (!operations.empty()) {
-        // Si hay compresión, usar "Comprimido"
-        if (std::find(operations.begin(), operations.end(), 'c') != operations.end()) {
+        bool hasCompress = std::find(operations.begin(), operations.end(), 'c') != operations.end();
+        bool hasDecompress = std::find(operations.begin(), operations.end(), 'd') != operations.end();
+        bool hasEncrypt = std::find(operations.begin(), operations.end(), 'e') != operations.end();
+        bool hasDecrypt = std::find(operations.begin(), operations.end(), 'u') != operations.end();
+        
+        // Operaciones combinadas
+        if (hasCompress && hasEncrypt) {
+            sizeHeader = "Comp+Encript";
+        }
+        else if (hasDecompress && hasDecrypt) {
+            sizeHeader = "Desc+Desencript";
+        }
+        else if (hasCompress && hasDecrypt) {
+            sizeHeader = "Comp+Desencript";
+        }
+        else if (hasDecompress && hasEncrypt) {
+            sizeHeader = "Desc+Encript";
+        }
+        // Operaciones individuales
+        else if (hasCompress) {
             sizeHeader = "Comprimido";
         }
-        // Si hay descompresión, usar "Descomprimido"
-        else if (std::find(operations.begin(), operations.end(), 'd') != operations.end()) {
+        else if (hasDecompress) {
             sizeHeader = "Descomprimido";
         }
-        // Si hay encriptación, usar "Encriptado"
-        else if (std::find(operations.begin(), operations.end(), 'e') != operations.end()) {
+        else if (hasEncrypt) {
             sizeHeader = "Encriptado";
         }
-        // Si hay desencriptación, usar "Desencriptado"
-        else if (std::find(operations.begin(), operations.end(), 'u') != operations.end()) {
+        else if (hasDecrypt) {
             sizeHeader = "Desencriptado";
         }
     }

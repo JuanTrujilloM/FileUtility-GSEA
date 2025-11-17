@@ -24,8 +24,8 @@ void compressRLE(const std::string &inputPath, const std::string &outputPath) {
     }
 
     // Buffers optimizados para I/O por bloques
-    constexpr size_t INPUT_BUF_SIZE = 65536;  // 64KB buffer de entrada
-    constexpr size_t OUTPUT_BUF_SIZE = 65536; // 64KB buffer de salida
+    constexpr size_t INPUT_BUF_SIZE = 4096;  // 4KB buffer de entrada
+    constexpr size_t OUTPUT_BUF_SIZE = 4096; // 4KB buffer de salida
     std::vector<char> inputBuffer(INPUT_BUF_SIZE);
     std::vector<char> outputBuffer;
     outputBuffer.reserve(OUTPUT_BUF_SIZE);
@@ -95,7 +95,7 @@ void decompressRLE(const std::string &inputPath, const std::string &outputPath) 
     }
 
     // Buffer optimizado para escritura
-    constexpr size_t OUTPUT_BUF_SIZE = 65536; // 64KB buffer
+    constexpr size_t OUTPUT_BUF_SIZE = 4096; // 4KB buffer
     std::vector<char> outputBuffer;
     outputBuffer.reserve(OUTPUT_BUF_SIZE);
 
@@ -155,7 +155,7 @@ void compressLZW(const std::string &inputPath, const std::string &outputPath) {
     outputCodes.reserve(8192); // Pre-reservar espacio
 
     // Buffer de lectura optimizado
-    constexpr size_t INPUT_BUF_SIZE = 65536; // 64KB
+    constexpr size_t INPUT_BUF_SIZE = 4096; // 4KB
     std::vector<char> inputBuffer(INPUT_BUF_SIZE);
     ssize_t bytesRead;
 
@@ -217,7 +217,7 @@ void decompressLZW(const std::string &inputPath, const std::string &outputPath) 
     int nextCode = 256;
 
     // Buffer de salida optimizado
-    constexpr size_t OUTPUT_BUF_SIZE = 65536; // 64KB
+    constexpr size_t OUTPUT_BUF_SIZE = 4096; // 4KB
     std::vector<char> outputBuffer;
     outputBuffer.reserve(OUTPUT_BUF_SIZE);
 
@@ -339,7 +339,7 @@ void compressHuffman(const std::string &inputPath, const std::string &outputPath
 
     // Leer archivo con buffer optimizado
     std::vector<unsigned char> data;
-    constexpr size_t BUF_SZ = 65536; // 64KB buffer
+    constexpr size_t BUF_SZ = 4096; // 4KB buffer
     std::vector<char> buf(BUF_SZ);
     ssize_t r;
     
@@ -511,8 +511,8 @@ void decompressHuffman(const std::string &inputPath, const std::string &outputPa
     HuffNode* root = pq.top();
 
     // Buffer optimizado para decodificación y escritura
-    constexpr size_t INPUT_BUF_SZ = 65536;  // 64KB input buffer
-    constexpr size_t OUTPUT_BUF_SZ = 65536; // 64KB output buffer
+    constexpr size_t INPUT_BUF_SZ = 4096;  // 4KB input buffer
+    constexpr size_t OUTPUT_BUF_SZ = 4096; // 4KB output buffer
     std::vector<unsigned char> inbuf(INPUT_BUF_SZ);
     std::vector<unsigned char> outbuf;
     outbuf.reserve(OUTPUT_BUF_SZ);
