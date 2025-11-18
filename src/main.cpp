@@ -5,6 +5,7 @@
 #include "fileManager.h"        // Para manejar la entrada/salida de archivos
 #include "compression.h"         // Para compresión
 #include "encryption.h"          // Para encriptación
+#include "Journal.h"             // Para journaling de operaciones
 #include <chrono>
 #include <mutex>
 #include <sstream>
@@ -46,7 +47,7 @@ static std::string makeTempName(const std::string &output_path, size_t op_idx, c
 }
 
 // Función para procesar un solo archivo con las operaciones especificadas
-void processFile(const std::string& input_path, const std::string& output_path, const std::vector<char>& operations, const std::string& comp_algorithm, const std::string& enc_algorithm, const std::string& key) {
+void processFile(const std::string& input_path, const std::string& output_path, const std::vector<char>& operations, const std::string& comp_algorithm, const std::string& enc_algorithm, const std::string& key, Journal* journal = nullptr, int fileNum = 1, int totalFiles = 1) {
     std::string current_input = input_path;  // El archivo individual
     std::vector<std::string> temp_files;
     
@@ -54,12 +55,53 @@ void processFile(const std::string& input_path, const std::string& output_path, 
     long long totalTime = 0;
     std::string status = "OK";
 
+    // Obtener nombre base del archivo
+    std::string baseName = input_path;
+    size_t lastSlash = baseName.find_last_of('/');
+    if (lastSlash != std::string::npos) {
+        baseName = baseName.substr(lastSlash + 1);
+    }
+
+    // Buffer local para acumular logs (evita mezcla en multithreading)
+    std::ostringstream logBuffer;
+    
+    // Función auxiliar para agregar timestamp al buffer
+    auto addLogToBuffer = [&logBuffer]() -> std::ostream& {
+        auto now = std::chrono::system_clock::now();
+        auto time_t_now = std::chrono::system_clock::to_time_t(now);
+        std::tm tm_now;
+        localtime_r(&time_t_now, &tm_now);
+        logBuffer << "[" << std::put_time(&tm_now, "%H:%M:%S") << "] ";
+        return logBuffer;
+    };
+
+    // Si hay journal y es una carpeta, escribir separador en buffer
+    if (journal && totalFiles > 1) {
+        logBuffer << "\n";
+        logBuffer << "----------------------------------------\n";
+        logBuffer << baseName << "\n";
+        logBuffer << "----------------------------------------\n";
+        addLogToBuffer() << "Procesando archivo " << baseName << "...\n";
+        addLogToBuffer() << "Tamaño: " << formatFileSize(originalSize) << "\n";
+    }
+
     // Iterar sobre cada operación en la cadena
     for (size_t idx = 0; idx < operations.size(); ++idx) {
         char op = operations[idx];
         bool last = (idx == operations.size() - 1);
         std::string target = last ? output_path : makeTempName(output_path, idx, input_path);
         if (!last) temp_files.push_back(target);
+
+        // Registrar inicio de operación específica
+        std::string opName;
+        if (op == 'c') opName = "Comprimiendo con " + comp_algorithm;
+        else if (op == 'd') opName = "Descomprimiendo con " + comp_algorithm;
+        else if (op == 'e') opName = "Encriptando con " + enc_algorithm;
+        else if (op == 'u') opName = "Desencriptando con " + enc_algorithm;
+        
+        if (journal) {
+            addLogToBuffer() << opName << "...\n";
+        }
 
         // Ejecutar operaciones según el tipo
         if (op == 'c') {
@@ -75,11 +117,16 @@ void processFile(const std::string& input_path, const std::string& output_path, 
                 std::ostringstream oss;
                 oss << "Algoritmo de compresión no soportado: " << comp_algorithm << "\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                if (journal) {
+                    addLogToBuffer() << "ERROR: " << oss.str();
+                    journal->logBlock(logBuffer.str());
+                }
                 printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
             auto t2 = std::chrono::steady_clock::now();
             totalTime += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+            if (journal) addLogToBuffer() << "Compresión completada\n";
         } else if (op == 'd') {
             // Descompresión
             auto t1 = std::chrono::steady_clock::now();
@@ -93,17 +140,26 @@ void processFile(const std::string& input_path, const std::string& output_path, 
                 std::ostringstream oss;
                 oss << "Algoritmo de descompresión no soportado: " << comp_algorithm << "\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                if (journal) {
+                    addLogToBuffer() << "ERROR: " << oss.str();
+                    journal->logBlock(logBuffer.str());
+                }
                 printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
             auto t2 = std::chrono::steady_clock::now();
             totalTime += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+            if (journal) addLogToBuffer() << "Descompresión completada\n";
         } else if (op == 'e') {
             // Encriptación
             if (key.empty()) {
                 std::ostringstream oss;
                 oss << "Debe especificar la clave con -k\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                if (journal) {
+                    addLogToBuffer() << "ERROR: " << oss.str();
+                    journal->logBlock(logBuffer.str());
+                }
                 printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
@@ -116,17 +172,26 @@ void processFile(const std::string& input_path, const std::string& output_path, 
                 std::ostringstream oss;
                 oss << "Algoritmo de encriptación no soportado: " << enc_algorithm << "\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                if (journal) {
+                    addLogToBuffer() << "ERROR: " << oss.str();
+                    journal->logBlock(logBuffer.str());
+                }
                 printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
             auto t2 = std::chrono::steady_clock::now();
             totalTime += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+            if (journal) addLogToBuffer() << "Encriptación completada\n";
         } else if (op == 'u') {
             // Desencriptación
             if (key.empty()) {
                 std::ostringstream oss;
                 oss << "Debe especificar la clave con -k\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                if (journal) {
+                    addLogToBuffer() << "ERROR: " << oss.str();
+                    journal->logBlock(logBuffer.str());
+                }
                 printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
@@ -139,15 +204,24 @@ void processFile(const std::string& input_path, const std::string& output_path, 
                 std::ostringstream oss;
                 oss << "Algoritmo de desencriptación no soportado: " << enc_algorithm << "\n";
                 for (auto &f : temp_files) std::remove(f.c_str());
+                if (journal) {
+                    addLogToBuffer() << "ERROR: " << oss.str();
+                    journal->logBlock(logBuffer.str());
+                }
                 printLockedStream([&](std::ostream &os){ os << oss.str(); });
                 return;
             }
             auto t2 = std::chrono::steady_clock::now();
             totalTime += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+            if (journal) addLogToBuffer() << "Desencriptación completada\n";
         } else {
             std::ostringstream oss;
             oss << "Operación desconocida: " << op << "\n";
             for (auto &f : temp_files) std::remove(f.c_str());
+            if (journal) {
+                addLogToBuffer() << "ERROR: " << oss.str();
+                journal->logBlock(logBuffer.str());
+            }
             printLockedStream([&](std::ostream &os){ os << oss.str(); });
             return;
         }
@@ -161,6 +235,16 @@ void processFile(const std::string& input_path, const std::string& output_path, 
     // Obtener tamaño final y calcular ratio
     long long finalSize = getFileSize(output_path);
     double ratio = (originalSize > 0) ? (100.0 * (originalSize - finalSize) / originalSize) : 0.0;
+    
+    // Registrar completado en journal (en buffer)
+    if (journal) {
+        addLogToBuffer() << "Archivo completado\n";
+        addLogToBuffer() << "Tamaño final: " << formatFileSize(finalSize) << "\n";
+        addLogToBuffer() << "Tiempo procesamiento: " << formatTime(totalTime / 1000.0) << "\n";
+        
+        // Escribir todo el buffer de una vez (atómico)
+        journal->logBlock(logBuffer.str());
+    }
     
     // Crear resultado y agregarlo al vector global
     FileResult result;
@@ -227,7 +311,8 @@ static void runThreadPool(const std::vector<std::pair<std::string,std::string>> 
                           const std::vector<char>& operations,
                           const std::string &comp_algorithm,
                           const std::string &enc_algorithm,
-                          const std::string &key) {
+                          const std::string &key,
+                          const std::string &input_path) {
     // Crear el thread pool (usa hardware_concurrency automáticamente)
     ThreadPool pool;
     
@@ -236,15 +321,84 @@ static void runThreadPool(const std::vector<std::pair<std::string,std::string>> 
         os << "Inicio de proceso con concurrencia: " << pool.getThreadCount() << " hilos\n\n";
     });
 
-    // Encolar todas las tareas en el thread pool
+    // Determinar el nombre de la operación para el journal
+    std::string opName;
+    for (char op : operations) {
+        if (op == 'c') opName += "COMPRESS_";
+        else if (op == 'd') opName += "DECOMPRESS_";
+        else if (op == 'e') opName += "ENCRYPT_";
+        else if (op == 'u') opName += "DECRYPT_";
+    }
+    if (!opName.empty() && opName.back() == '_') {
+        opName.pop_back();
+    }
+
+    // Determinar si es un archivo o carpeta
+    bool isDirectory = tasks.size() > 1;
+    
+    // Obtener nombre base del target
+    std::string targetName = input_path;
+    size_t lastSlash = targetName.find_last_of('/');
+    if (lastSlash != std::string::npos) {
+        targetName = targetName.substr(lastSlash + 1);
+    }
+
+    // Calcular tamaño total
+    long long totalSize = 0;
     for (const auto &p : tasks) {
-        pool.enqueue([p, &operations, &comp_algorithm, &enc_algorithm, &key]() {
-            processFile(p.first, p.second, operations, comp_algorithm, enc_algorithm, key);
+        long long sz = getFileSize(p.first);
+        if (sz > 0) totalSize += sz;
+    }
+
+    // Crear el journal
+    Journal* journal = nullptr;
+    try {
+        journal = new Journal(opName, targetName, isDirectory);
+        
+        // Escribir encabezado
+        if (isDirectory) {
+            journal->writeHeader(opName, targetName, input_path, "", tasks.size(), totalSize);
+            journal->log("Inicio de proceso...");
+            journal->log("Escaneando carpeta...");
+            journal->log("Procesando " + std::to_string(tasks.size()) + " archivos...");
+        } else {
+            journal->writeHeader(opName, targetName, tasks[0].first, tasks[0].second, 1, totalSize);
+            journal->log("Inicio de proceso...");
+        }
+    } catch (const std::exception &e) {
+        printLockedStream([&](std::ostream &os){
+            os << "Advertencia: No se pudo crear el journal: " << e.what() << "\n";
+        });
+    }
+
+    // Encolar todas las tareas en el thread pool
+    int fileCounter = 0;
+    for (const auto &p : tasks) {
+        fileCounter++;
+        int currentFileNum = fileCounter;
+        pool.enqueue([p, &operations, &comp_algorithm, &enc_algorithm, &key, journal, currentFileNum, &tasks]() {
+            processFile(p.first, p.second, operations, comp_algorithm, enc_algorithm, key, 
+                       journal, currentFileNum, tasks.size());
         });
     }
 
     // Esperar a que todas las tareas terminen
     pool.waitForCompletion();
+    
+    // Escribir resumen final en el journal
+    if (journal) {
+        long long totalProcessed = 0;
+        for (const auto &result : globalResults) {
+            totalProcessed += result.originalSize;
+        }
+        journal->writeSummary("EXITOSO", tasks.size(), totalProcessed);
+        
+        printLockedStream([&](std::ostream &os){
+            os << "\n✓ Journal creado: " << journal->getJournalPath() << "\n";
+        });
+        
+        delete journal;
+    }
     
     // Determinar el encabezado apropiado según las operaciones
     std::string sizeHeader = "Procesado";
@@ -349,7 +503,7 @@ void processFileOrDirectory(const std::string& input_path, const std::string& ou
         return;
     }
 
-    runThreadPool(tasks, operations, comp_algorithm, enc_algorithm, key);
+    runThreadPool(tasks, operations, comp_algorithm, enc_algorithm, key, input_path);
 }
 
 // Función para validar la clave de encriptación

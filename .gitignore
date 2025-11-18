@@ -1,3 +1,4 @@
 bin/
 tests/testSub/Archivo1GB.txt
 tests_copy
+journal/
