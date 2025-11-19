@@ -105,6 +105,133 @@ void processFile(const std::string& input_path, const std::string& output_path, 
 
         // Ejecutar operaciones según el tipo
         if (op == 'c') {
+            // Detectar extensión del archivo
+            std::string extension;
+            size_t dotPos = input_path.find_last_of('.');
+            if (dotPos != std::string::npos) {
+                extension = input_path.substr(dotPos);
+                std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+            }
+            
+            // Sugerencias basadas en el tipo de archivo
+            std::string suggestedAlgorithm;
+            std::string reason;
+            bool shouldSuggest = false;
+            
+            // Texto: .txt, .log, .md, .csv
+            if (extension == ".txt" || extension == ".log" || extension == ".md" || extension == ".csv") {
+                if (comp_algorithm != "Huff" && comp_algorithm != "Huffman") {
+                    suggestedAlgorithm = "Huffman";
+                    reason = "archivo de texto";
+                    shouldSuggest = true;
+                }
+            }
+            // Imágenes: .bmp, .pgm, .ppm
+            else if (extension == ".bmp" || extension == ".pgm" || extension == ".ppm") {
+                if (comp_algorithm == "RLE") {
+                    suggestedAlgorithm = "Huffman o LZW";
+                    reason = "imagen sin comprimir";
+                    shouldSuggest = true;
+                }
+            }
+            // Audio: .wav, .aiff, .au
+            else if (extension == ".wav" || extension == ".aiff" || extension == ".au") {
+                if (comp_algorithm == "RLE") {
+                    suggestedAlgorithm = "Huffman o LZW";
+                    reason = "audio sin comprimir";
+                    shouldSuggest = true;
+                }
+            }
+            // Video: .avi, .mov
+            else if (extension == ".avi" || extension == ".mov") {
+                if (comp_algorithm != "Huff" && comp_algorithm != "Huffman") {
+                    suggestedAlgorithm = "Huffman";
+                    reason = "video";
+                    shouldSuggest = true;
+                }
+            }
+            // Binarios/Ejecutables: .bin, .exe
+            else if (extension == ".bin" || extension == ".exe" || extension == "") {
+                // Para ejecutables sin extensión (Linux)
+                bool isExecutable = (extension == "" && baseName.find('.') == std::string::npos);
+                if (isExecutable || extension == ".bin" || extension == ".exe") {
+                    if (comp_algorithm != "LZW") {
+                        suggestedAlgorithm = "LZW";
+                        reason = "binario/ejecutable";
+                        shouldSuggest = true;
+                    }
+                }
+            }
+            
+            // Mostrar sugerencia solo para archivos individuales (no para carpetas)
+            if (shouldSuggest && totalFiles == 1) {
+                // Si la sugerencia incluye múltiples opciones (Huffman o LZW)
+                if (suggestedAlgorithm.find("o") != std::string::npos) {
+                    std::ostringstream suggestion;
+                    suggestion << "\nSUGERENCIA para " << baseName << ":\n";
+                    suggestion << "   Este es un " << reason << " (" << extension << ").\n";
+                    suggestion << "   RLE no es óptimo para este tipo de archivo.\n";
+                    suggestion << "   Algoritmo actual: " << comp_algorithm << "\n";
+                    suggestion << "   ¿Desea cambiar el algoritmo?\n";
+                    suggestion << "   1) Huffman\n";
+                    suggestion << "   2) LZW\n";
+                    suggestion << "   3) Continuar con RLE\n";
+                    suggestion << "   Seleccione (1/2/3): ";
+                    
+                    printLockedStream([&](std::ostream &os){ os << suggestion.str(); });
+                    
+                    std::string response;
+                    std::getline(std::cin, response);
+                    
+                    if (response == "1") {
+                        const_cast<std::string&>(comp_algorithm) = "Huff";
+                        printLockedStream([](std::ostream &os){ 
+                            os << "✓ Cambiando a Huffman para mejor compresión.\n\n"; 
+                        });
+                        if (journal) {
+                            addLogToBuffer() << "Usuario cambió algoritmo a Huffman\n";
+                        }
+                    } else if (response == "2") {
+                        const_cast<std::string&>(comp_algorithm) = "LZW";
+                        printLockedStream([](std::ostream &os){ 
+                            os << "✓ Cambiando a LZW para mejor compresión.\n\n"; 
+                        });
+                        if (journal) {
+                            addLogToBuffer() << "Usuario cambió algoritmo a LZW\n";
+                        }
+                    } else {
+                        printLockedStream([](std::ostream &os){ 
+                            os << "✓ Continuando con RLE.\n\n"; 
+                        });
+                    }
+                } else {
+                    // Sugerencia de un solo algoritmo
+                    std::ostringstream suggestion;
+                    suggestion << "\n⚠️  SUGERENCIA para " << baseName << ":\n";
+                    suggestion << "   Este es un " << reason << " (" << extension << ").\n";
+                    suggestion << "   El algoritmo " << suggestedAlgorithm << " suele ofrecer mejor compresión.\n";
+                    suggestion << "   Algoritmo actual: " << comp_algorithm << "\n";
+                    suggestion << "   ¿Desea cambiar a " << suggestedAlgorithm << "? (s/n): ";
+                    
+                    printLockedStream([&](std::ostream &os){ os << suggestion.str(); });
+                    
+                    std::string response;
+                    std::getline(std::cin, response);
+                    if (response == "s" || response == "S" || response == "si" || response == "Si" || response == "SI") {
+                        const_cast<std::string&>(comp_algorithm) = suggestedAlgorithm;
+                        printLockedStream([&](std::ostream &os){ 
+                            os << "✓ Cambiando a " << suggestedAlgorithm << " para mejor compresión.\n\n"; 
+                        });
+                        if (journal) {
+                            addLogToBuffer() << "Usuario cambió algoritmo a " << suggestedAlgorithm << "\n";
+                        }
+                    } else {
+                        printLockedStream([](std::ostream &os){ 
+                            os << "✓ Continuando con el algoritmo original.\n\n"; 
+                        });
+                    }
+                }
+            }  
             // Compresión
             auto t1 = std::chrono::steady_clock::now();
             if (comp_algorithm == "RLE") {
@@ -385,21 +512,6 @@ static void runThreadPool(const std::vector<std::pair<std::string,std::string>> 
     // Esperar a que todas las tareas terminen
     pool.waitForCompletion();
     
-    // Escribir resumen final en el journal
-    if (journal) {
-        long long totalProcessed = 0;
-        for (const auto &result : globalResults) {
-            totalProcessed += result.originalSize;
-        }
-        journal->writeSummary("EXITOSO", tasks.size(), totalProcessed);
-        
-        printLockedStream([&](std::ostream &os){
-            os << "\n✓ Journal creado: " << journal->getJournalPath() << "\n";
-        });
-        
-        delete journal;
-    }
-    
     // Determinar el encabezado apropiado según las operaciones
     std::string sizeHeader = "Procesado";
     if (!operations.empty()) {
@@ -484,6 +596,34 @@ static void runThreadPool(const std::vector<std::pair<std::string,std::string>> 
     std::cout << "Tiempo Total: " << formatTime(totalTime / 1000.0) << "\n";
     std::cout << "Tasa de Procesamiento: " << std::fixed << std::setprecision(2) 
               << (totalFiles / (totalTime / 1000.0)) << " archivos/s\n";
+    
+    // Escribir resumen final y tabla en el journal
+    if (journal) {
+        long long totalProcessed = 0;
+        for (const auto &result : globalResults) {
+            totalProcessed += result.originalSize;
+        }
+        journal->writeSummary("EXITOSO", tasks.size(), totalProcessed);
+        
+        // Escribir la tabla de resultados en el journal
+        std::ostringstream tableStream;
+        tableStream << "\n" << std::string(60, '=') << "\n";
+        tableStream << "TABLA DE RESULTADOS\n";
+        tableStream << std::string(60, '=') << "\n\n";
+        tableStream << table.toString();
+        tableStream << "\nTiempo Total: " << formatTime(totalTime / 1000.0) << "\n";
+        tableStream << "Tasa de Procesamiento: " << std::fixed << std::setprecision(2) 
+                     << (totalFiles / (totalTime / 1000.0)) << " archivos/s\n";
+        
+        // Escribir todo el bloque junto sin timestamps
+        journal->logBlock(tableStream.str());
+        
+        printLockedStream([&](std::ostream &os){
+            os << "\n✓ Journal creado: " << journal->getJournalPath() << "\n";
+        });
+        
+        delete journal;
+    }
 }
 
 // Función para procesar un archivo o directorio completo

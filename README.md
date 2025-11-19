@@ -18,13 +18,13 @@ Utilidad de línea de comandos para compresión, descompresión, encriptación y
 
 ## Características
 
-- ✅ **Compresión/Descompresión**: RLE, LZW, Huffman
-- ✅ **Encriptación/Desencriptación**: Vigenere, AES-128 (CBC)
-- ✅ **Operaciones combinadas**: Comprimir + Encriptar en una sola ejecución
-- ✅ **Procesamiento concurrente**: Usa thread pool para carpetas con múltiples archivos
-- ✅ **Journaling automático**: Registro detallado de todas las operaciones
-- ✅ **Soporte para carpetas**: Procesamiento recursivo de directorios completos
-- ✅ **Validación de claves**: Verifica complejidad y seguridad de contraseñas
+- **Compresión/Descompresión**: RLE, LZW, Huffman
+- **Encriptación/Desencriptación**: Vigenere, AES-128 (CBC)
+- **Operaciones combinadas**: Comprimir + Encriptar en una sola ejecución
+- **Procesamiento concurrente**: Usa thread pool para carpetas con múltiples archivos
+- **Journaling automático**: Registro detallado de todas las operaciones
+- **Soporte para carpetas**: Procesamiento recursivo de directorios completos
+- **Validación de claves**: Verifica complejidad y seguridad de contraseñas
 
 ## Requisitos
 
@@ -79,6 +79,75 @@ El ejecutable se generará en `bin/FileUtility`.
 ### Encriptación
 - **VIG/Vigenere**: Cifrado por sustitución polialfabética, requiere clave alfanumérica
 - **AES/AES128**: AES-128 en modo CBC, requiere clave de mínimo 16 caracteres
+
+## Recomendaciones por Tipo de Archivo
+
+El programa incluye un **sistema de sugerencias inteligente** que recomienda el mejor algoritmo según el tipo de archivo:
+
+### Archivos de Texto
+**Extensiones:** `.txt`, `.log`, `.md`, `.csv`  
+**Algoritmo recomendado:** **Huffman**  
+- Mejor compresión para texto plano y estructurado
+- Eficiencia: 60-70% de reducción típica
+
+### Imágenes sin Comprimir
+**Extensiones:** `.bmp`, `.pgm`, `.ppm`  
+**Algoritmos recomendados:** **Huffman** o **LZW**  
+- Huffman: Ligeramente mejor en general
+- LZW: Excelente para imágenes con patrones
+- Evitar RLE a menos que sean imágenes muy simples (logos, iconos)
+- Eficiencia: 50-70% de reducción
+
+### Audio sin Comprimir
+**Extensiones:** `.wav`, `.aiff`, `.au`  
+**Algoritmos recomendados:** **Huffman** o **LZW**  
+- Huffman: Mejor rendimiento general
+- LZW: Alternativa válida
+- Evitar RLE
+- Eficiencia: 15-35% de reducción
+
+### Video
+**Extensiones:** `.avi`, `.mov`  
+**Algoritmo recomendado:** **Huffman**  
+- Nota: Videos modernos (MP4, MKV) ya están comprimidos y no se benefician de compresión adicional
+
+### Binarios y Ejecutables
+**Extensiones:** `.bin`, `.exe`, archivos sin extensión (ejecutables Linux)  
+**Algoritmo recomendado:** **LZW**  
+- Mejor para código binario y estructuras de datos complejas
+- Eficiencia: 40-60% de reducción
+
+### Sistema Interactivo de Sugerencias
+
+Cuando comprimes un **archivo individual** con un algoritmo subóptimo, el programa te preguntará si deseas cambiar:
+
+```bash
+$ ./bin/FileUtility -c -i documento.txt -o output.dat --comp-alg LZW
+
+   SUGERENCIA para documento.txt:
+   Este es un archivo de texto (.txt).
+   El algoritmo Huffman suele ofrecer mejor compresión.
+   Algoritmo actual: LZW
+   ¿Desea cambiar a Huffman? (s/n):
+```
+
+**Para imágenes y audio con RLE**, se ofrecen múltiples opciones:
+
+```bash
+$ ./bin/FileUtility -c -i imagen.bmp -o output.dat --comp-alg RLE
+
+   SUGERENCIA para imagen.bmp:
+   Este es un imagen sin comprimir (.bmp).
+   RLE no es óptimo para este tipo de archivo.
+   Algoritmo actual: RLE
+   ¿Desea cambiar el algoritmo?
+   1) Huffman
+   2) LZW
+   3) Continuar con RLE
+   Seleccione (1/2/3):
+```
+
+**Nota:** Las sugerencias solo aparecen para archivos individuales, no cuando se procesan carpetas completas.
 
 ## Ejemplos
 
@@ -268,8 +337,8 @@ Usa `tests/Test1E.txt` para probar algoritmos de encriptación:
 
 ## Notas Importantes
 
-- ⚠️ Las claves de encriptación deben ser seguras (mínimo 8 caracteres, se recomienda 16+ para AES)
-- ⚠️ El programa valida la complejidad de las claves antes de procesar
-- ⚠️ Para operaciones combinadas, el orden de descompresión/desencriptación debe invertirse
-- ℹ️ Los journals se generan automáticamente en `journal/` y no se incluyen en git
-- ℹ️ El procesamiento concurrente se adapta automáticamente al número de núcleos disponibles
+- Las claves de encriptación deben ser seguras (mínimo 8 caracteres, se recomienda 16+ para AES)
+- El programa valida la complejidad de las claves antes de procesar
+- Para operaciones combinadas, el orden de descompresión/desencriptación debe invertirse
+- Los journals se generan automáticamente en `journal/` y no se incluyen en git
+- El procesamiento concurrente se adapta automáticamente al número de núcleos disponibles

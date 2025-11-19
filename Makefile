@@ -4,6 +4,7 @@ CXX = g++
 # Directorios
 SRC_DIR = src
 BIN_DIR = bin
+JOURNAL_DIR = journal
 TEST_DIR = tests
 INCLUDE_DIR = include
 
@@ -21,6 +22,7 @@ $(TARGET):
 # Limpiar los archivos generados
 clean:
 	rm -f $(BIN_DIR)/*
+	rm -f $(JOURNAL_DIR)/*
 
 # Limpiar y recompilar
 rebuild: clean all
